@@ -1,0 +1,15 @@
+Donjon/data/1Sap_vs_3Sap_proc/Saphyb_as filter=lfs diff=lfs merge=lfs -text
+Donjon/data/SCWR64Core_proc/DBREF_03.txt filter=lfs diff=lfs merge=lfs -text
+Donjon/data/ssrcell_thm_proc/_COMPO.txt filter=lfs diff=lfs merge=lfs -text
+Donjon/data/SmallCore_BaffRefl_Benchmark_mpo_proc/Ass_3GLE_420_16Gd_99g-mpo.hdf filter=lfs diff=lfs merge=lfs -text
+Donjon/data/Test_PMAXS_Macro_proc/Gen_UOX_37.PMAX filter=lfs diff=lfs merge=lfs -text
+Donjon/data/VHTR_SPH_proc/Multicompo filter=lfs diff=lfs merge=lfs -text
+Donjon/data/history_mphy_proc/_ACompo filter=lfs diff=lfs merge=lfs -text
+Donjon/data/pmox_sap_proc/_Saphyb_UOX filter=lfs diff=lfs merge=lfs -text
+Donjon/data/rep900_sim_defrod_proc/_Saphyb_MOX filter=lfs diff=lfs merge=lfs -text
+Donjon/data/rep900_sim_defrod_proc/_Saphyb_UOX filter=lfs diff=lfs merge=lfs -text
+Donjon/data/rep900_sim_recopy_proc/Saphyb_UOX filter=lfs diff=lfs merge=lfs -text
+doc/IGE344/Figures/CombBurn.eps filter=lfs diff=lfs merge=lfs -text
+doc/IGE344/Figures/FaceView.eps filter=lfs diff=lfs merge=lfs -text
+doc/IGE344/Figures/Geom.eps filter=lfs diff=lfs merge=lfs -text
+doc/IGE344/Figures/TopView.eps filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,17 @@
+**/Linux_x86_64
+
+Donjon/src/Donjon
+Dragon/src/Dragon
+Ganlib/src/Ganlib
+Trivac/src/Trivac
+
+**/bin
+**/lib
+
+*.o
+*.mod
+*.a
+
+.DS_Store
+
+
