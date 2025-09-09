@@ -159,6 +159,7 @@ elif [ $term = 0 ]; then
     printf "${GREEN}[OK]${NC}\n"
   else
     printf "${RED}[FAILED]${NC}\n"
+    exit 1
   fi
 fi
 chmod -R 777 $Rundir
