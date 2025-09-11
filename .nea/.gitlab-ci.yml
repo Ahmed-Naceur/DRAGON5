@@ -1,0 +1,214 @@
+variables:
+  GIT_STRATEGY: clone
+  GIT_SUBMODULE_STRATEGY: recursive
+  GET_SOURCES_ATTEMPTS: 3
+  DOCKER_BASE_REPO: docker.oecd-nea.org
+
+
+stages:
+  - build
+  - test
+  - deploy
+#  - release
+
+default:
+  tags:
+    - podman
+
+.release_rules: &RELEASE_RULES
+  rules:
+    # Run this job only when a tag is created
+    - if: '$CI_COMMIT_TAG =~ /v+\d+\.\d+\.\d+/'
+
+.apt_setup: &APT_SETUP |
+  sed -i 's|http://archive.ubuntu.com|http://debmirror.nea.fr:9999/archive.ubuntu.com|g'  /etc/apt/sources.list
+  sed -i 's|http://security.ubuntu.com|http://debmirror.nea.fr:9999/security.ubuntu.com|g' /etc/apt/sources.list
+  apt-get update -o Acquire::ForceIPv4=true
+
+.apt2_setup: &APT2_SETUP |
+  sed -i 's|http://archive.ubuntu.com|http://debmirror.nea.fr:9999/archive.ubuntu.com|g'  /etc/apt/sources.list.d/ubuntu.sources
+  sed -i 's|http://security.ubuntu.com|http://debmirror.nea.fr:9999/security.ubuntu.com|g' /etc/apt/sources.list.d/ubuntu.sources
+  apt-get update -o Acquire::ForceIPv4=true
+
+.apt_deb_setup: &APT_DEB_SETUP |
+  sed -i 's|http://deb.debian.org|http://debmirror.nea.fr:9999/deb.debian.org|g'  /etc/apt/sources.list
+  apt-get update -o Acquire::ForceIPv4=true
+
+.apt_deb2_setup: &APT_DEB2_SETUP |
+  sed -i 's|http://deb.debian.org|http://debmirror.nea.fr:9999/deb.debian.org|g'  /etc/apt/sources.list.d/debian.sources
+  apt-get update -o Acquire::ForceIPv4=true
+
+.build_with_hdf5: &BUILD_WITH_HDF5 |
+  cd Donjon
+  make hdf5=1 openmp=1
+  cd ../PyGan
+  make hdf5=1 openmp=1
+
+
+.build_linux_template:
+  stage: build
+  before_script:
+    - *APT_SETUP
+    - |
+      env DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
+        make gfortran python3 python3-dev python3-numpy python3-distutils libhdf5-serial-dev libomp-dev
+  after_script:
+    - mkdir 5.1
+    - mv Donjon 5.1/
+    - mv Dragon 5.1/
+    - mv Ganlib 5.1/
+    - mv PyGan 5.1/
+    - mv Trivac 5.1/
+    - mv script 5.1/
+  artifacts:
+    paths:
+    - 5.1/**/rdonjon
+    - 5.1/**/rdragon
+    - 5.1/**/rganlib
+    - 5.1/**/rpython
+    - 5.1/**/rtrivac
+    - 5.1/**/bin
+    - 5.1/**/lib
+    - 5.1/**/data
+    - 5.1/PyGan/Makefile
+    - 5.1/script
+    expire_in: 1 day
+    when: always
+
+build_ubuntu20:
+  extends: .build_linux_template
+  image: docker.oecd-nea.org/dragon/5.1/ubuntu:20.04
+  script:
+    - export HDF5_INC=/usr/include/hdf5/serial
+    - export HDF5_API=/usr/lib/x86_64-linux-gnu/hdf5/serial
+    - export FORTRANPATH=/usr/lib/gcc/x86_64-linux-gnu/9
+    - *BUILD_WITH_HDF5
+
+build_ubuntu22:
+  extends: .build_linux_template
+  image: docker.oecd-nea.org/dragon/5.1/ubuntu:22.04
+  script:
+    - export HDF5_INC=/usr/include/hdf5/serial
+    - export HDF5_API=/usr/lib/x86_64-linux-gnu/hdf5/serial
+    - export FORTRANPATH=/usr/lib/gcc/x86_64-linux-gnu/11
+    - *BUILD_WITH_HDF5
+
+# uses python 3.12
+build_ubuntu24:
+  extends: .build_linux_template
+  image: docker.oecd-nea.org/dragon/5.1/ubuntu:24.04
+  before_script:
+    - *APT2_SETUP
+    - |
+      env DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
+        make gfortran python3 python3-dev python3-numpy python3-setuptools libhdf5-serial-dev libomp-dev
+  script:
+    - export HDF5_INC=/usr/include/hdf5/serial
+    - export HDF5_API=/usr/lib/x86_64-linux-gnu/hdf5/serial
+    - export FORTRANPATH=/usr/lib/gcc/x86_64-linux-gnu/13
+    - *BUILD_WITH_HDF5
+
+.test_template:
+  stage: test
+  image: docker.oecd-nea.org/dragon/5.1/ubuntu:22.04
+  variables:
+    GIT_STRATEGY: none
+  needs:
+  - job: build_ubuntu22
+    artifacts: true
+  before_script:
+    - *APT_SETUP
+    # Note that the binaries require gfortran (a matching version) at runtime
+    - |
+      env DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
+        python3 python3-numpy python3-distutils python3-matplotlib libomp-dev \
+        make gfortran wget libhdf5-serial-dev libomp-dev
+    - export HDF5_INC=/usr/include/hdf5/serial
+    - export HDF5_API=/usr/lib/x86_64-linux-gnu/hdf5/serial
+    - export DRAGON_HOME=$CI_PROJECT_DIR/dragon
+    - export DRAGON_LIB_DIR=$DRAGON_HOME/libraries/l_endian
+    - export DRAGON_CODE_DIR=$DRAGON_HOME/5.1
+    - mkdir -p ${DRAGON_LIB_DIR}
+    - mv 5.1 ${DRAGON_HOME}/
+
+test_ganlib_ubuntu22:
+  extends: .test_template
+  script:
+    - cd ${DRAGON_CODE_DIR}/Ganlib
+    - ./rganlib -q testgan1.x2m
+    - ./rganlib -q testgan2.x2m
+    - ./rganlib -q testgan3.x2m
+    - ./rganlib -q testgan4.x2m
+
+
+test_dragon_ubuntu22:
+  extends: .test_template
+  script:
+    - cd ${DRAGON_LIB_DIR}
+    # get JEF 2.2 for testing
+    - wget --no-check-certificate https://git.oecd-nea.org/dragon/libraries/-/raw/main/l_endian/draglibJef2p2.gz
+    # get JEF 3.1.1 for OpenMP testing
+    - wget --no-check-certificate https://git.oecd-nea.org/dragon/libraries/-/raw/main/l_endian/draglibJeff3p1p1SHEM295_v5p1.gz
+    - cd ${DRAGON_CODE_DIR}/Dragon
+    - ./rdragon -q salmacro.x2m
+    - ./rdragon -q tdraglib.x2m
+    - ./rdragon -q pincell_mpo.x2m
+    - ./rdragon -q -p 8 uo2_295_kec1_openMP.x2m
+
+
+test_donjon_ubuntu22:
+  extends: .test_template
+  script:
+    - cd ${DRAGON_LIB_DIR}
+    # get JEF 2.2 for testing
+    - wget --no-check-certificate https://git.oecd-nea.org/dragon/libraries/-/raw/main/l_endian/draglibJef2p2Apolib99_v5p1.gz
+    - cd ${DRAGON_CODE_DIR}/Donjon
+    - ./rdonjon -q rep900_msap.x2m
+    - ./rdonjon -q Reflector_beavrs_DF-RT_Jef2p2Apolib99.x2m
+    - ./rdonjon -q Fessenheim.x2m
+
+
+test_pygan_ubuntu22:
+  extends: .test_template
+  script:
+    - cd ${DRAGON_LIB_DIR}
+    # get JEF 2.2 for testing
+    - wget --no-check-certificate https://git.oecd-nea.org/dragon/libraries/-/raw/main/l_endian/draglibJeff3p1p1SHEM295_v5p1.gz
+    - cd ${DRAGON_CODE_DIR}/PyGan
+    - make tests hdf5=1 openmp=1
+
+docker_ubuntu24_slim:
+  stage: deploy
+  image:
+    # recommended image for building with kaniko
+    # https://docs.gitlab.com/ee/ci/docker/using_kaniko.html#building-a-docker-image-with-kaniko
+    name: ${DOCKER_BASE_REPO}/dragon/5.1/kaniko:v1.23.0-debug
+    entrypoint: [""]
+  needs:
+  - job: test_ganlib_ubuntu22
+    artifacts: false
+  - job: test_dragon_ubuntu22
+    artifacts: false
+  - job: test_donjon_ubuntu22
+    artifacts: false
+  - job: test_pygan_ubuntu22
+    artifacts: false
+  script:
+    - |
+      cat <<EOF > /kaniko/.docker/config.json
+      {
+        "auths": {
+          "docker.oecd-nea.org": {
+            "username": "$CI_DEPLOY_USER",
+            "password": "$CI_DEPLOY_PASSWORD"
+          }
+        }
+      }
+      EOF
+    # TODO: change the hardcoded docker tag to use a git tag
+    - >
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/.nea/docker/Dockerfile.slim"
+      --destination "${DOCKER_BASE_REPO}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:v5.1.0-slim"
+      --single-snapshot --cache=false

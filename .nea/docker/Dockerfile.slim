@@ -1,0 +1,51 @@
+FROM docker.oecd-nea.org/dragon/5.1/ubuntu:24.04
+
+COPY ./.nea/docker/entrypoint.sh /entrypoint.sh
+
+ENV DRAGON_HOME=/dragon
+ENV DRAGON_CODE_DIR=$DRAGON_HOME/5.1
+
+ENV HDF5_INC=/usr/include/hdf5/serial
+ENV HDF5_API=/usr/lib/x86_64-linux-gnu/hdf5/serial
+ENV FORTRANPATH=/usr/lib/gcc/x86_64-linux-gnu/13
+
+RUN AG="env DEBIAN_FRONTEND=noninteractive apt-get -yq" && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+    # NEA special for our internal apt mirrors
+    cp /etc/apt/sources.list.d/ubuntu.sources /ubuntu.sources.original && \
+    sed -i 's|http://archive.ubuntu.com|http://debmirror.nea.fr:9999/archive.ubuntu.com|g'  /etc/apt/sources.list.d/ubuntu.sources && \
+    sed -i 's|http://security.ubuntu.com|http://debmirror.nea.fr:9999/security.ubuntu.com|g' /etc/apt/sources.list.d/ubuntu.sources && \
+    $AG update && \
+    $AG upgrade --no-install-recommends && \
+    $AG install --no-install-recommends openssl git git-lfs wget curl make gfortran python3 python3-dev python3-numpy python3-setuptools libhdf5-serial-dev libomp-dev && \
+    $AG autoremove && \
+    $AG autoclean && \
+    $AG clean && \
+    # Put the normal apt sources back after installing deps
+    mv /ubuntu.sources.original /etc/apt/sources.list.d/ubuntu.sources && \
+    openssl s_client -showcerts -connect git.oecd-nea.org:443 < /dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /ca.crt && \
+    git config --global http.sslCAInfo /ca.crt && \
+    mkdir ${DRAGON_HOME} && cd ${DRAGON_HOME} && \
+    git clone https://git.oecd-nea.org/dragon/5.1 && \
+    cd ${DRAGON_CODE_DIR} && \
+    # to keep it slim we can remove the .git folder, and the data folders
+    rm -rf .git Donjon/data Dragon/data Trivac/data doc && \
+    cd ${DRAGON_CODE_DIR}/Donjon && \
+    make hdf5=1 openmp=1 && \
+    # this doesn't remove the binaries, just the *.o and the *.a and *.mod files
+    make clean && \
+    cd ../PyGan && \
+    make hdf5=1 openmp=1 && \
+    # this doesn't remove the binaries, just the *.o and the *.a and *.mod files
+    make clean && \
+    cd ../Ganlib && \
+    ./rganlib -q testgan1.x2m && \
+    ./rganlib -q testgan2.x2m && \
+    ./rganlib -q testgan3.x2m && \
+    chmod +x /entrypoint.sh
+
+# ENV DRAGON_LIB_DIR=$DRAGON_HOME/libraries/l_endian
+
+WORKDIR /dragon/5.1/
+
+ENTRYPOINT [ "/entrypoint.sh" ]
