@@ -32,13 +32,14 @@ RUN AG="env DEBIAN_FRONTEND=noninteractive apt-get -yq" && \
     rm -rf .git Donjon/data Dragon/data Trivac/data doc && \
     cd ${DRAGON_CODE_DIR}/Donjon && \
     make hdf5=1 openmp=1 && \
-    # this doesn't remove the binaries, just the *.o and the *.a and *.mod files
-    make clean && \
     cd ../PyGan && \
     make hdf5=1 openmp=1 && \
     # this doesn't remove the binaries, just the *.o and the *.a and *.mod files
     make clean && \
-    cd ../Ganlib && \
+    cd ${DRAGON_CODE_DIR}/Donjon && \
+    # this doesn't remove the binaries, just the *.o and the *.a and *.mod files
+    make clean && \
+    cd ${DRAGON_CODE_DIR}/Ganlib && \
     ./rganlib -q testgan1.x2m && \
     ./rganlib -q testgan2.x2m && \
     ./rganlib -q testgan3.x2m && \
