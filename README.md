@@ -22,6 +22,27 @@ In order to compile and run Dragon you must have a Fortran compiler (2003 or lat
 Optional dependencies are [OpenMP](https://www.openmp.org/resources/openmp-compilers-tools/) and [HDF5](https://www.hdfgroup.org/download-hdf5/).
 
 
+## Cloning
+
+To clone this repository from the command line you will need `git` installed. To obtain the code run:
+
+```bash
+git clone https://git.oecd-nea.org/dragon/5.1
+```
+
+Note that cloning via https is the simplest as it requires no authentication, if you have an NEA account and you've added your ssh keys to your account you can also clone via ssh:
+
+```bash
+git clone git@git.oecd-nea.org:dragon/5.1.git
+```
+
+### LFS
+
+This repository includes some data files used for testing, some of which are quite substantial in size (some up to 100 MB). As a result, Git LFS (Large File Storage), is used to store any files larger than 10 MB. For most cases, users will not need these files unless they wish to run tests locally.
+
+If you wish to obtain these large files, you require Git LFS installed on your machine (see [here](https://git-lfs.com/) for more details on this).
+
+
 ## Installation
 
 Dragon is supported on Linux and Unix machines. For Windows users we recommend using the Windows Subsystem for Linux (WSL).
