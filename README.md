@@ -90,7 +90,7 @@ For Windows users you can use [Docker Desktop](https://docs.docker.com/desktop/s
 
 ### Get image
 
-To get a docker images (Ubuntu 22.04) with PHITS already setup and paths set, you may pull this image via:
+To get a docker images (Ubuntu 22.04) with Dragon/Donjon already setup and paths set, you may pull this image via:
 
 ```bash
 docker pull docker.oecd-nea.org/dragon/5.1:v5.1.0-slim
