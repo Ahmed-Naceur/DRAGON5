@@ -35,7 +35,7 @@ tests :
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q iaea2d.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q g2s_prestation.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q salmacro.x2m
-#	./rdragon -c $(fcompilerSuite) -p $(nomp) -q tmacro.x2m
+	./rdragon -c $(fcompilerSuite) -p $(nomp) -q tmacro.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q VanDerGucht.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q VanDerGucht-295.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q uo2_295_kec1_openMP.x2m 
