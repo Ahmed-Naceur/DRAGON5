@@ -1,0 +1,148 @@
+% IGNrapport.sty - Modified for Pandoc compatibility
+% G. Marleau
+% 1998/09/18
+%
+
+\ProvidesPackage{IGNrapport}[1998/09/18]
+\RequirePackage{array,cite,indentfirst,epsfig,fleqn} 
+\RequirePackage{hyperref}
+\hypersetup{colorlinks}
+
+%
+%  Definition
+%
+\newcommand{\warningStyle}{\itshape}
+\newcommand{\warningRestore}{\normalfont}
+\newcommand{\ColorComments}[1]{\renewcommand{\warningStyle}{\color{#1}\itshape}
+                               \renewcommand{\warningRestore}{\color{Black}\normalfont}}
+\newcommand{\warning}[1]{\warningStyle This option is not supported in #1.\warningRestore}
+
+\newcommand{\sectionformat}[1]{\ifnum \@typerapport=0 {#1} \else {#1} \fi}
+\newcommand{\sectionstyle}[1]{\ifnum \@typerapport=0 {#1} \else {#1} \fi}
+\newcommand{\subsectionstyle}[1]{\ifnum \@typerapport=0 {#1} \else {#1} \fi}
+\gdef\@typerapport{0}
+\gdef\@typesections{0}
+\def\RapportCourt{\gdef\@typerapport{1}}
+\def\refname{References}
+\def\Indexname{Index}
+\gdef\@tableofcontents{Contents}
+\gdef\@listoffigures{List of Figures}
+\gdef\@listoftables{List of Tables}
+\gdef\@listofinput{List of Input Files}
+\gdef\@listoftation{List of Notations and Symbols}
+\gdef\@listofappendix{List of Appendices}
+\def\appendixname{Appendix}
+\def\indexname{{\Indexname}}
+
+% COMMENTED OUT: Complex table of contents redefinitions that confuse pandoc
+% \renewcommand\tableofcontents{...}
+% \newcommand\listofappendices{...}
+% \renewcommand\listoffigures{...}
+% \renewcommand\listoftables{...}
+% \newcommand\listofinputdecks{...}
+
+%
+%  References - Simplified
+%
+\renewenvironment{thebibliography}[1]
+     {\section*{\refname}
+      \list{\@biblabel{\@arabic\c@enumiv}}%
+           {\settowidth\labelwidth{\@biblabel{#1}}%
+            \leftmargin\labelwidth
+            \advance\leftmargin\labelsep
+            \@openbib@code
+            \usecounter{enumiv}%
+            \let\p@enumiv\@empty
+            \renewcommand\theenumiv{\@arabic\c@enumiv}}%
+      \sloppy
+      \clubpenalty4000
+      \@clubpenalty \clubpenalty
+      \widowpenalty4000%
+      \sfcode`\.\@m}
+     {\def\@noitemerr
+       {\@latex@warning{Empty `thebibliography' environment}}%
+      \endlist}
+
+% COMMENTED OUT: Complex index redefinitions
+% \renewenvironment{theindex}...
+
+%
+%  Simplified page layout commands
+%
+\setlength{\textheight}{22.0cm}
+\setlength{\textwidth}{16.0cm}
+\setlength{\oddsidemargin}{0.5cm}
+\setlength{\evensidemargin}{0.5cm}
+\setlength{\topmargin}{0cm}
+\setlength{\headheight}{0.5cm}
+\setlength{\headsep}{0.5cm}
+\makeindex
+
+% Simplified rapport commands
+\newcommand{\RapportIGN}[1]{
+    \markright{\normalfont \slshape #1}
+    \pagestyle{myheadings} 
+    \pagenumbering{roman}
+    \setcounter{page}{1}\clearpage}
+
+% COMMENTED OUT: Complex title page commands that reference missing graphics
+% \newcommand{\pagetitreRapportIGN}[1]{...}
+% \newcommand{\pagetitreIGN}[4]{...}
+
+\newcommand{\Debutdutexte}{\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}}
+
+\setcounter{tocdepth}{3}
+\renewcommand{\thesection}{\@arabic\c@section}
+\renewcommand{\thesubsection}{\thesection.\@arabic\c@subsection}
+\renewcommand{\thesubsubsection}{\thesubsection.\@arabic\c@subsubsection}
+\@addtoreset {equation}{section}
+\renewcommand{\theequation}{\thesection.\@arabic\c@equation}
+
+% COMMENTED OUT: All complex section redefinitions that confuse pandoc
+% \renewcommand\section{...}
+% \renewcommand{\subsection}{...}
+% \renewcommand{\subsubsection}{...}
+% \renewcommand{\paragraph}{...}
+% \newcommand\appendices{...}
+% \renewcommand\appendix{...}
+% All the complex appendix and input deck commands...
+
+% COMMENTED OUT: Complex verbatim file inclusion commands
+% \def\listfile#1{...}
+% \def\listing#1{...}
+% \def\setupverbatim{...}
+
+% Keep the useful reference commands - these are safe
+\newcommand{\Eq}[1]{Eq.~(\ref{eq:#1})}
+\newcommand{\Eqto}[2]{Eqs.~(\ref{eq:#1}) to~(\ref{eq:#2})}
+\newcommand{\Eqand}[2]{Eqs.~(\ref{eq:#1}) and~(\ref{eq:#2})}
+\newcommand{\Eqor}[2]{Eqs.~(\ref{eq:#1}) or~(\ref{eq:#2})}
+
+\newcommand{\Appen}[1]{Appendix~\ref{appen:#1}}
+\newcommand{\Appento}[2]{Appendices~\ref{appen:#1} to~\ref{appen:#2}}
+\newcommand{\Appenand}[2]{Appendices~\ref{appen:#1} and~\ref{appen:#2}}
+\newcommand{\Appenor}[2]{Appendices~\ref{appen:#1} or~\ref{appen:#2}}
+
+\newcommand{\Sect}[1]{Section~\ref{sect:#1}}
+\newcommand{\Sectto}[2]{Sections~\ref{sect:#1} to~\ref{sect:#2}}
+\newcommand{\Sectand}[2]{Sections~\ref{sect:#1} and~\ref{sect:#2}}
+\newcommand{\Sector}[2]{Sections~\ref{sect:#1} or~\ref{sect:#2}}
+
+\newcommand{\Fig}[1]{Figure~\ref{fig:#1}}
+\newcommand{\Figto}[2]{Figure~\ref{fig:#1} to~\ref{fig:#2}}
+\newcommand{\Figand}[2]{Figure~\ref{fig:#1} and~\ref{fig:#2}}
+\newcommand{\Figor}[2]{Figure~\ref{fig:#1} or~\ref{fig:#2}}
+
+\newcommand{\Tab}[1]{Table~\ref{tab:#1}}
+\newcommand{\Tabto}[2]{Table~\ref{tab:#1} to~\ref{tab:#2}}
+\newcommand{\Taband}[2]{Table~\ref{tab:#1} and~\ref{tab:#2}}
+\newcommand{\Tabor}[2]{Table~\ref{tab:#1} or~\ref{tab:#2}}
+
+% COMMENTED OUT: Complex blank command that uses while loops
+% \newcounter{nblank}
+% \newcommand{\blank}[1]{...}
+
+% Simplified citation command
+\renewcommand{\@cite}[2]{[#1\ifthenelse{\boolean{@tempswa}}{, #2}{}]}

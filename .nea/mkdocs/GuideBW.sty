@@ -1,0 +1,117 @@
+% Guide.sty - Simplified for Pandoc compatibility
+% G. Marleau
+% created : 1998/09/18
+% modified: 1999/05/07
+%           Simplified for pandoc conversion
+%
+
+\ProvidesPackage{GuideBW}[1999/09/07]
+\RequirePackage{array,cite,ifthen} 
+% Removed longtable as it causes pandoc issues
+
+\gdef\@GuideVersion{0}
+\newcommand\GuideVersion[1]{\gdef\@GuideVersion{#1}}
+
+%
+% Simplified text formatting commands - these are safe for pandoc
+%
+\DeclareRobustCommand{\moc}[1]{\texttt{#1}}
+\DeclareRobustCommand{\dds}[1]{\textsc{#1}}
+\DeclareRobustCommand{\dusa}[1]{\textsl{#1}}
+\DeclareRobustCommand{\dstr}[1]{\textbf{(#1)}}
+\DeclareRobustCommand{\dir}[1]{\textrm{/#1/}}
+\DeclareRobustCommand{\listedir}[1]{\textrm{\{/#1/\}}}
+\DeclareRobustCommand{\namedir}[1]{\texttt{/#1/}}
+\DeclareRobustCommand{\tst}[1]{\textbf{#1}}
+
+%  
+%  Math commands - safe for pandoc
+%
+\newcommand{\keff}{\ensuremath{K_{\mathrm{eff}}}}
+\newcommand{\kin}[1]{\ensuremath{\mathrm{Ki}_{#1}}}
+\newcommand{\rv}{\ensuremath{\vec{r}}}
+\newcommand{\Ov}{\ensuremath{\vec{\Omega}}}
+\newcommand{\delv}{\ensuremath{\vec{\nabla}}}
+\newcommand{\nv}{\ensuremath{\vec{N}}}
+\newcommand{\drift}{\ensuremath{\vec{\Omega}\cdot\vec{\nabla}}}
+\newcommand{\Iso}[2]{\ensuremath{^{#2}\mathrm{#1}}}
+
+%
+% SIMPLIFIED: DataStructure environment - converted to simple table
+% Original used complex longtable which pandoc can't handle
+%
+\newenvironment{DataStructure}[1]{%
+  \begin{center}
+  \textbf{#1}
+  \end{center}
+  \begin{quote}
+}{%
+  \end{quote}
+}
+
+%
+% SIMPLIFIED: DescriptionEnregistrement environment 
+% Converted to simple description list instead of complex longtable
+%
+\newenvironment{DescriptionEnregistrement}[2]{%
+  \begin{center}
+  \textbf{#1}
+  \end{center}
+  \begin{description}
+}{%
+  \end{description}
+}
+
+% SIMPLIFIED: Convert table commands to simple description items
+\newcommand{\IntEnr}[3]{\item[\texttt{#1}] I(#2) -- #3}
+\newcommand{\OptIntEnr}[4]{\item[\texttt{#1}] I(#2), #3 -- #4}
+\newcommand{\RealEnr}[4]{\item[\texttt{#1}] R(#2), #3 -- #4}
+\newcommand{\OptRealEnr}[5]{\item[\texttt{#1}] R(#2), #3, #4 -- #5}
+\newcommand{\DbleEnr}[4]{\item[\texttt{#1}] D(#2), #3 -- #4}
+\newcommand{\OptDbleEnr}[5]{\item[\texttt{#1}] D(#2), #3, #4 -- #5}
+\newcommand{\CharEnr}[3]{\item[\texttt{#1}] C#2 -- #3}
+\newcommand{\OptCharEnr}[4]{\item[\texttt{#1}] C#2, #3 -- #4}
+\newcommand{\DirEnr}[2]{\item[\texttt{#1}] Dir -- #2}
+\newcommand{\OptDirEnr}[3]{\item[\texttt{#1}] Dir, #2 -- #3}
+\newcommand{\DirlEnr}[3]{\item[\texttt{#1}] Dir(#2) -- #3}
+\newcommand{\OptDirlEnr}[4]{\item[\texttt{#1}] Dir(#2), #3 -- #4}
+
+\newcommand{\IntVar}[3]{\item[\textsl{#1}] I(#2) -- #3}
+\newcommand{\OptIntVar}[4]{\item[\textsl{#1}] I(#2), #3 -- #4}
+\newcommand{\RealVar}[4]{\item[\textsl{#1}] R(#2), #3 -- #4}
+\newcommand{\OptRealVar}[5]{\item[\textsl{#1}] R(#2), #3, #4 -- #5}
+\newcommand{\DbleVar}[4]{\item[\textsl{#1}] D(#2), #3 -- #4}
+\newcommand{\OptDbleVar}[5]{\item[\textsl{#1}] D(#2), #3, #4 -- #5}
+\newcommand{\CharVar}[3]{\item[\textsl{#1}] C#2 -- #3}
+\newcommand{\OptCharVar}[4]{\item[\textsl{#1}] C#2, #3 -- #4}
+\newcommand{\DirVar}[2]{\item[\textsl{#1}] Dir -- #2}
+\newcommand{\OptDirVar}[3]{\item[\textsl{#1}] Dir, #2 -- #3}
+\newcommand{\OptDirlVar}[4]{\item[\textsl{#1}] Dir(#2), #3 -- #4}
+
+%
+% Simplified list environments - these work with pandoc
+%
+\newlength{\NotationLength}
+\newcommand{\NotationLabel}[1]{\mbox{#1}\hfil}
+\newenvironment{ListeDeNotation}[1]{%
+  \begin{description}
+}{%
+  \end{description}
+}
+
+\newlength{\DescriptionLength}
+\newcommand{\DescriptionLabel}[1]{\mbox{#1}\hfil}
+\newenvironment{ListeDeDescription}[1]{%
+  \begin{description}
+}{%
+  \end{description}
+}
+
+% Release commands - simplified but functional
+\newcommand{\Release}[2]{#2 (Release #1)}
+\newcommand{\Releasetmp}[1]{(Release #1)}
+\newenvironment{GuideUpdate}[1]{%
+  \hfill\Releasetmp{#1}%
+}{}
+\newcommand{\BegRel}[1]{}
+\newcommand{\EndRel}[0]{}

@@ -1,0 +1,22 @@
+site_name: Dragon
+docs_dir: doc
+nav:
+    - doc/IGE322.md
+    - doc/IGE335.md
+    - doc/IGE344.md
+    - doc/IGE351.md
+    - doc/IGE369.md
+    - 'Issue Tracker': 'https://git.oecd-nea.org/dragon/5.1/-/issues'
+theme:
+  name: mkdocs
+  highlightjs: true
+  favicon: .nea/mkdocs/favicon.ico
+
+plugins:
+    - search
+    - pandoc
+    - gen-files:
+        scripts:
+            - .nea/mkdocs/pre_build.py
+
+
