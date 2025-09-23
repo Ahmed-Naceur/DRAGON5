@@ -1,14 +1,5 @@
 # Welcome to the Dragon/Donjon Documentation
 
-Here you will find documentation for different packages
+Here you will find documentation for for Dragon / Donjon.
+All related codes are hosted in the [NEA GitLab repository](https://git.oecd-nea.org/dragon/5.1)
 
-[IGE332](IGE332.md)
-[IGE335](IGE335.md)
-[IGE344](IGE344.md)
-<!-- [IGE351](IGE351.md) -->
-[IGE369](IGE369.md)
-
-<!-- \input{IGE332/IGE332.md} -->
-
-<!-- \usepackage{IGE332/IGNrapport.sty}
-\input{IGE332/chapter1.tex} -->

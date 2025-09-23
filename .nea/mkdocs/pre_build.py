@@ -2,11 +2,30 @@ from pathlib import Path
 import shutil
 import subprocess
 
-here = Path(__file__)
+here = Path(__file__).parent
 
-DOCDIR=here.parents[2] / "doc"
+DOCSDIR=here.parents[1] / "docs"
 CSS="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
-STY= here.parent / "IGNrapportPandocCompatible.sty"
+STY= here / "IGNrapportPandocCompatible.sty"
+
+# copy all existing documentation to `docs` folder for clean working space
+DOCSDIR.mkdir(exist_ok=True)
+shutil.copytree(here.parents[1] / 'doc', DOCSDIR)
+
+# add customizations to docs
+shutil.copytree(here/'customization', DOCSDIR, dirs_exist_ok=True)
+
+# cleanup of previous builds
+for image in DOCSDIR.glob('IGE*/images/*.eps'):
+    image.unlink()
+for image in DOCSDIR.glob('IGE*/images/*.png'):
+    image.unlink()
+for image in DOCSDIR.glob('images/*.eps'):
+    image.unlink()
+for image in DOCSDIR.glob('images/*.png'):
+    image.unlink()
+for report in DOCSDIR.glob('IGE*.md'):
+    report.unlink()
 
 
 setup_scripts = {"IGE335":"""ln -s ../../Dragon/data/tmacro_proc/TCM01.c2m TCM01.x2m
@@ -76,18 +95,42 @@ rm *.4tc
 rm *.xref
 rm *.lot"""
 
+pandocify_figures=r"sed -i 's/\\epsffile{\([^}]*\)}/\\includegraphics{\1}/g' *.tex"
+
+
 
 for report in ["IGE332", "IGE335", "IGE344", "IGE369"]: # Skipping "IGE351" for now due to latex issues
     # overwrite IGNRapport style file with Pandoc compatible version
-    shutil.copy(STY, DOCDIR / report / "IGNrapport.sty")
+    shutil.copy(STY, DOCSDIR / report / "IGNrapport.sty")
 
     # clean temporary latex files
-    subprocess.run(clean_tmp_latex, capture_output=True, shell=True, cwd=f"{DOCDIR / report}")
+    subprocess.run(clean_tmp_latex, capture_output=True, shell=True, cwd=f"{DOCSDIR / report}")
+    subprocess.run(pandocify_figures, capture_output=True, shell=True, cwd=f"{DOCSDIR / report}")
 
     # subproject-specific setup
     if setup_script:=setup_scripts.get(report, None):
-        subprocess.run(setup_script, capture_output=True, shell=True, cwd=f"{DOCDIR/ report}")
+        subprocess.run(setup_script, capture_output=True, shell=True, cwd=f"{DOCSDIR/ report}")
     
     # latex to markdown conversion
-    command = ["pandoc", "-s", "-t", "markdown", "--mathml", "--self-contained", "-f", "latex", f"{report}.tex", "-o", f"{DOCDIR}/{report}.md"]
-    subprocess.run(command, check=True, cwd=f"{DOCDIR/report}")
+    command = ["pandoc", "--standalone", "-t", "markdown", "--mathml", "--extract-media=images", "--self-contained", "-f", "latex", f"{report}.tex", f"--lua-filter={here/'latex-to-mkdocs-refs.lua'}", "-o", f"{DOCSDIR}/{report}.md"]
+    subprocess.run(command, check=True, cwd=f"{DOCSDIR/report}")
+    
+    # move image folder to correct relative path with respect to output markdown
+    shutil.copytree(DOCSDIR/report/'images', DOCSDIR/'images', dirs_exist_ok=True)
+
+    # convert eps images to web-compatible (mkdocs compatible) png
+    for eps_image in (DOCSDIR / 'images').glob('*.eps'):
+        # enable imagemagick to handle eps file via cli
+        # sudo sed -i 's/<policy domain="coder" rights="none" pattern="PS" \/>/<policy domain="coder" rights="read" pattern="PS" \/>/g' /etc/ImageMagick-6/policy.xml
+        # increase memory limit to process large files
+        # sudo sed -i 's/<policy domain="resource" name="memory" value="256MiB"\/>/<policy domain="resource" name="memory" value="4GiB"\/>/g' /etc/ImageMagick-6/policy.xml
+        command = f"convert -colorspace RGB -density 300 -quality 90 {eps_image} {eps_image.with_suffix('.png')}"
+        subprocess.run(command, check=True, cwd=f"{DOCSDIR}", shell=True)
+
+    # replace references to .eps files
+    command = rf"sed -i 's/\.eps)/\.png)/g' {report}.md"
+    subprocess.run(command, check=True, cwd=DOCSDIR, shell=True)
+
+    
+        
+

@@ -1,20 +1,28 @@
-site_name: Dragon
-docs_dir: doc
+site_name: Dragon / Donjon
+docs_dir: docs
 nav:
-    - doc/IGE322.md
-    - doc/IGE335.md
-    - doc/IGE344.md
-    - doc/IGE351.md
-    - doc/IGE369.md
+    - 'Home': index.md
+    - 'User Guides':
+        - Dragon User Guide: IGE335.md
+        - Donjon User Guide: IGE344.md
+        - Trivac User Guide: IGE369.md
+    - 'Developer Documentation':
+        - 'Dragon and Trivac Data Structures': IGE351.md
+        - 'Ganlib': IGE332.md
+    - 'Source Code': 'https://git.oecd-nea.org/dragon/5.1'
     - 'Issue Tracker': 'https://git.oecd-nea.org/dragon/5.1/-/issues'
 theme:
   name: mkdocs
   highlightjs: true
-  favicon: .nea/mkdocs/favicon.ico
+  favicon: images/favicon.ico
+
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
 
 plugins:
     - search
-    - pandoc
     - gen-files:
         scripts:
             - .nea/mkdocs/pre_build.py
