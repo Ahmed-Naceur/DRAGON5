@@ -229,8 +229,8 @@ build_test_pages:
           - .nea/mkdocs/**/*
 
   image:
-    - name: docker.git.oecd-nea.org/dragon/5.1/python:alpine
-      entrypoint: [""]
+    name: docker.git.oecd-nea.org/dragon/5.1/python:alpine
+    entrypoint: [""]
 
   script:
     - mkdocs build
