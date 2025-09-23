@@ -215,3 +215,24 @@ docker_ubuntu24_slim:
   rules:
     - if: '$CI_COMMIT_TAG =~ /v+\d+\.\d+\.\d+/'
 
+build_test_pages:
+  stage: build
+  artifacts:
+    paths:
+      - site/**/*
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      changes:
+        compare_to: 'refs/head/main'
+        paths:
+          - doc/**/*
+          - .nea/mkdocs/**/*
+
+  image:
+    - name: docker.git.oecd-nea.org/dragon/5.1/python:alpine
+      entrypoint: [""]
+
+  script:
+    - mkdocs build
+  
+

@@ -34,7 +34,7 @@ doc/**/*.tmp
 doc/**/readme
 
 doc/IGE*.md
-
+doc/img
 
 # Latex
 ## Core latex/pdflatex auxiliary files:
