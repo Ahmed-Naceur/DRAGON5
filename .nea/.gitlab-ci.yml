@@ -223,7 +223,7 @@ build_test_pages:
   rules:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       changes:
-        compare_to: 'refs/head/main'
+        compare_to: 'refs/heads/main'
         paths:
           - doc/**/*
           - .nea/mkdocs/**/*
