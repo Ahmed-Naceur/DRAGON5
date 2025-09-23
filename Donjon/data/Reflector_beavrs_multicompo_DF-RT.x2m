@@ -1,19 +1,19 @@
 *---
-*  Nodal Expansion Reflector DF-ANM equivalence prodedure
+*  Raviart-Thomas Reflector DF-RT equivalence prodedure
 *---
-LINKED_LIST Geom FVol Param MACRO ;
-STRING nameFeed := "assbly_caseA_mpo_boron.hdf" ;
-STRING nameRefl := "reflector_beavrs_DF-ANM_mpo.hdf" ;
-STRING Palier := "BEAVRS" ;
-STRING htype := "DF-ANM" ;
-STRING LibType := "JEF22" ;
-STRING NuclData := "DLIB_99" ;
+LINKED_LIST CompoRefl Geom FVol Param MACRO ;
+STRING nameFeed := "assbly_caseA_multicompo_draglib_feed.txt" ;
+STRING nameRefl := "reflector_beavrs_DF-RT_multicompo.txt" ;
+STRING Palier := "Beavrs" ;
+STRING htype := "DF-RT" ;
+STRING LibType := "JEFF311" ;
+STRING NuclData := "DLIB_J3" ;
 STRING OptSph := "NOSP" ;
 STRING OptNoal := "ALBE" ;
 STRING OptSS := "TONE" ;
-MODULE GEO: UTL: MCR: END: ;
-HDF5_FILE MpoRefl :: FILE <<nameRefl>> ;
-PROCEDURE REFL_MPO ;
+MODULE GEO: UTL: NCR: END: ;
+SEQ_ASCII _CompoRefl :: FILE <<nameRefl>> ;
+PROCEDURE REFL_MCO ;
 !
 Geom := GEO: ::
    CAR1D 12
@@ -44,25 +44,26 @@ CREA 'SS ' <<nbZones>> = 0. 1. 1. <<fvacier>> 0. 1. 0. 0.
 UTL: FVol :: DUMP ;
 
 * Define feeding assembly parameters (0 to 3 parameters allowed)
-Param := UTL: :: CREA PARAMVALU 1 = 975.
+Param := UTL: :: CREA PARAMVALU 1 = 750.0 ! set feeding assembly to 750 ppm Boron
                  STEP UP 'PARAMNAME' NEW LIST 1
-                 CREA 1 2 = 'C-BO' 'RE  ' ;
+                 CREA 1 2 = 'ppmB' 'ore ' ;
 UTL: Param :: DUMP ;
 
 INTEGER nlf := 1 ;
 EVALUATE nbZones := nbZones 1 - ; ! decreases nbZones by one
-MpoRefl := REFL_MPO Geom FVol Param :: <<nameFeed>> <<nameRefl>> <<Palier>> <<htype>>
+_CompoRefl := REFL_MCO Geom FVol Param :: <<nameFeed>> <<nameRefl>> <<Palier>> <<htype>>
                             <<nlf>> <<LibType>> <<NuclData>> <<OptSph>> <<OptNoal>>
                             <<OptSS>> <<nbZones>> ;
 
 ************************************************************************
-* MPO extrapolation of the reflector at 350 ppm Boron
+* Multicompo access
 ************************************************************************
+CompoRefl := _CompoRefl ;
 REAL densB1 := 350.0 ;
-MACRO :=  MCR:  MpoRefl :: EDIT 3 MACRO NMIX 1
-   MPO MpoRefl output_0
-   MIX  1 FROM 2 SET 'C-BORE' <<densB1>> SET 'Method' <<htype>> SET 'Palier' <<Palier>> ENDMIX
+MACRO :=  NCR:  CompoRefl :: EDIT 3 MACRO NMIX 1
+   COMPO CompoRefl 'COND2'
+   MIX  1 FROM 2 SET 'ppmBore' <<densB1>> SET 'Method' <<htype>> SET 'Palier' <<Palier>> ENDMIX
 ;
 UTL: MACRO :: DIR DUMP ;
-ECHO "test Reflector_beavrs_DF-ANM.x2m completed" ;
+ECHO "test Reflector_Beavrs_DF-RT.x2m completed" ;
 END: ;
