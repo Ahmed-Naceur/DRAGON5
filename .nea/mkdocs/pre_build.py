@@ -10,12 +10,19 @@ STY= here / "IGNrapportPandocCompatible.sty"
 
 # copy all existing documentation to `docs` folder for clean working space
 DOCSDIR.mkdir(exist_ok=True)
-shutil.copytree(here.parents[1] / 'doc', DOCSDIR)
+shutil.copytree(here.parents[1] / 'doc', DOCSDIR, dirs_exist_ok=True)
 
-# add customizations to docs
-shutil.copytree(here/'customization', DOCSDIR, dirs_exist_ok=True)
+protected_children= ['img', 'index.md']
 
 # cleanup of previous builds
+for child in DOCSDIR.glob('*'):
+    if child.name in protected_children:
+        continue
+    if child.is_dir():
+        shutil.rmtree(child)
+    elif child.is_file():
+        child.unlink()
+
 for image in DOCSDIR.glob('IGE*/images/*.eps'):
     image.unlink()
 for image in DOCSDIR.glob('IGE*/images/*.png'):
