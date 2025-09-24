@@ -5,15 +5,9 @@ import subprocess
 here = Path(__file__).parent
 
 DOCSDIR=here.parents[1] / "docs"
-CSS="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
 STY= here / "IGNrapportPandocCompatible.sty"
 
-# copy all existing documentation to `docs` folder for clean working space
-DOCSDIR.mkdir(exist_ok=True)
-shutil.copytree(here.parents[1] / 'doc', DOCSDIR, dirs_exist_ok=True)
-
 protected_children= ['img', 'index.md']
-
 # cleanup of previous builds
 for child in DOCSDIR.glob('*'):
     if child.name in protected_children:
@@ -33,6 +27,11 @@ for image in DOCSDIR.glob('images/*.png'):
     image.unlink()
 for report in DOCSDIR.glob('IGE*.md'):
     report.unlink()
+
+# copy all existing documentation to `docs` folder for clean working space
+DOCSDIR.mkdir(exist_ok=True)
+print(f'Copying {here.parents[1] / "doc"} to {DOCSDIR}')
+subprocess.run(f"cp -r {here.parents[1] / 'doc/*'} {DOCSDIR}", shell=True)
 
 
 setup_scripts = {"IGE335":"""ln -s ../../Dragon/data/tmacro_proc/TCM01.c2m TCM01.x2m
@@ -103,8 +102,6 @@ rm *.xref
 rm *.lot"""
 
 pandocify_figures=r"sed -i 's/\\epsffile{\([^}]*\)}/\\includegraphics{\1}/g' *.tex"
-
-
 
 for report in ["IGE332", "IGE335", "IGE344", "IGE369"]: # Skipping "IGE351" for now due to latex issues
     # overwrite IGNRapport style file with Pandoc compatible version
