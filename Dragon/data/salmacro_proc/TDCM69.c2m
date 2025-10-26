@@ -7,8 +7,9 @@
 *-------------------------------------------------------------------------------------------------
 SEQ_ASCII TDT_LAT_DAT :: FILE './irena_tiso_s30.dat' ;
 SEQ_ASCII TDT_LAT_PS :: FILE './irena_tiso_s30.eps' ;
+SEQ_ASCII TDT_LAT_M :: FILE './irena_tiso_s30.m' ;
 MODULE
-    G2S: MAC: SALT: ASM: FLU: EDI: END: ;
+    G2S: MAC: SALT: TLM: ASM: FLU: EDI: DELETE: END: ;
 LINKED_LIST
     MACRO4G_0 MACRO4G TRACK CP FLUX OUT ;
 SEQ_BINARY
@@ -86,17 +87,41 @@ TDT_LAT_PS := G2S: TDT_LAT_DAT :: DRAWMIX ;
 
 TRACK TRACK_f := SALT: TDT_LAT_DAT ::
     TITL 'TDCM69 imported'
-    EDIT 6
+    EDIT 1
     ANIS 1
     TISO 8 10.0
     REND LONG
     IC EPSJ 1.0E-4
     ;
 *-------------------------------------------------------------------------------------------------
-*  Flux calculation
+*  Flux calculation IC
 *-------------------------------------------------------------------------------------------------
 CP := ASM: MACRO4G TRACK TRACK_f :: PIJ ;
 FLUX := FLU: MACRO4G CP TRACK TRACK_f :: TYPE K ;
+assertS FLUX :: 'K-EFFECTIVE' 1 1.008920 ;
+
+TRACK TRACK_f CP FLUX := DELETE: TRACK TRACK_f CP FLUX ;
+
+TRACK TRACK_f := SALT: TDT_LAT_DAT ::
+    TITL 'TDCM69 imported TISO'
+    EDIT 1
+    ANIS 1
+    TISO 8 10.0
+    REND LONG
+    NOIC
+    ;
+
+TDT_LAT_M := TLM: TRACK TRACK_f ::
+    EDIT 1
+    NTPO 1
+    DIRECTIONS NoPause DIR 0
+    ;
+*-------------------------------------------------------------------------------------------------
+*  Flux calculation TISO
+*-------------------------------------------------------------------------------------------------
+CP := ASM: MACRO4G TRACK TRACK_f :: PIJ ;
+FLUX := FLU: MACRO4G CP TRACK TRACK_f :: TYPE K ;
+assertS FLUX :: 'K-EFFECTIVE' 1 1.008918 ;
 
 *-------------------------------------------------------------------------------------------------
 *  Editing
@@ -107,7 +132,6 @@ OUT := EDI: MACRO4G TRACK FLUX ::
     COND
     ;
 
-assertS FLUX :: 'K-EFFECTIVE' 1 1.007306 ;
 ECHO "test TDCM69 completed" ;
 END: ;
 QUIT "LIST" .
