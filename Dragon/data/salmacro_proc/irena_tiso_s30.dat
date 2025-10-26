@@ -1981,7 +1981,7 @@
 * boundaries conditions: defaul nbbcda allsur
   0, 3, 0
 * albedo
-  0.0
+  1.0
 * type  number of elements
   4, 74
 *   elements
@@ -2413,7 +2413,7 @@
   6
   7
   8
-  9
+  1
   1
   1
   1
