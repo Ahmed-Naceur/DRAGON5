@@ -27,7 +27,9 @@ if [ -f "$pos"/draglibendfb7r1SHEM315_v5p1.gz ]
    then
     echo 'gunzipping draglibendfb7r1SHEM315_v5p1'
     chmod 755 "$pos"
-    gunzip "$pos"/draglibendfb7r1SHEM315_v5p1.gz
+    if [ ! -f "$pos"/draglibendfb7r1SHEM315_v5p1 ]; then
+       gunzip "$pos"/draglibendfb7r1SHEM315_v5p1.gz
+    fi
 fi
 if [ -f "$pos"/draglibendfb7r1SHEM315_v5p1 ]  
    then

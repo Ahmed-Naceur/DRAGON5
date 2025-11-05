@@ -1,7 +1,7 @@
 #---------------------------------------------------------------------------
 #
 #  Makefile for building the Trivac library and load module
-#  Author : A. Hebert (2018-5-10)
+#  Author : A. Hebert (2018-5-10) and C. Bienvenue (2025-11-04)
 #
 #---------------------------------------------------------------------------
 #
@@ -19,6 +19,7 @@ endif
 DIRNAME = $(shell uname -sm | sed 's/[ ]/_/')
 OS = $(shell uname -s | cut -d"_" -f1)
 opt = -O -g
+.DEFAULT_GOAL := all
 ifeq ($(openmp),1)
   COMP = -fopenmp
 else
@@ -44,12 +45,11 @@ else
 endif
 
 ifeq ($(OS),AIX)
-  python_version_major := 2
+  PY := python
 else
-  python_version_full := $(wordlist 2,4,$(subst ., ,$(shell python --version 2>&1)))
-  python_version_major := $(word 1,${python_version_full})
-  ifneq ($(python_version_major),2)
-    python_version_major := 3
+  PY := $(shell command -v python3 2>/dev/null)
+  ifeq ($(PY),)
+    PY := $(shell command -v python 2>/dev/null)
   endif
 endif
 
@@ -134,7 +134,9 @@ else
       bin = ../bin/$(DIRNAME)_llvm
       INCLUDE = -I../../Ganlib/lib/$(DIRNAME)_llvm/modules/
       FFLAGS += -mmlir -fdynamic-heap-array
-      LFLAGS += -lclang_rt.osx
+      ifeq ($(OS),Darwin)
+        LFLAGS += -lclang_rt.osx
+      endif
     else
       lib = ../lib/$(DIRNAME)
       libUtl = ../../Utilib/lib/$(DIRNAME)
@@ -151,14 +153,27 @@ ifeq ($(hdf5),1)
   LFLAGS += -L${HDF5_API} -lhdf5
 endif
 
-SRC77 = $(shell ls *.f)
-ifeq ($(python_version_major),2)
-  SRC90 = $(shell python ../../script/make_depend.py *.f90)
+SRC77 = $(shell ls *.f 2>/dev/null)
+ifeq ($(PY),)
+  $(warning No Python interpreter found; Fortran dependency ordering may be suboptimal)
+  SRC90 = $(shell ls *.f90 2>/dev/null)
 else
-  SRC90 = $(shell python3 ../../script/make_depend_py3.py *.f90)
+  SRC90 = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90)
 endif
-OBJ90 = $(SRC90:.f90=.o)
+OBJ90 = $(patsubst %.f90,%.o,$(patsubst %.F90,%.o,$(SRC90)))
 OBJ77 = $(SRC77:.f=.o)
+
+# Auto-generated dependency file capturing Fortran module and include deps
+DEPS_MK := .trivac_deps.mk
+-include $(DEPS_MK)
+$(DEPS_MK): $(SRC90) $(SRC77) $(SRCF77)
+ifeq ($(PY),)
+	@echo "# Dependencies not generated: no Python available" > $(DEPS_MK)
+else
+	@echo "# Generating Fortran dependencies into $(DEPS_MK)"; \
+	$(PY) ../../script/make_depend.py --make-deps $(SRC90) $(SRC77) $(SRCF77) > $(DEPS_MK) || { rm -f $(DEPS_MK); exit 1; }
+endif
+
 all : sub-make Trivac
 ifeq ($(openmp),1)
 	@echo 'Trivac: openmp is defined'
@@ -184,8 +199,8 @@ sub-make:
 	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
 $(lib)/:
 	mkdir -p $(lib)/
-libTrivac.a: $(OBJ90) $(OBJ77) $(lib)/
-	ar r $@ $(OBJ90) $(OBJ77)
+libTrivac.a: $(DEPS_MK) $(OBJ90) $(OBJ77) $(lib)/
+	ar rcs $@ $(OBJ90) $(OBJ77)
 	cp $@ $(lib)/$@
 $(bin)/:
 	mkdir -p $(bin)/
@@ -196,4 +211,4 @@ Trivac: libTrivac.a TRIVAC.o $(bin)/ sub-make
 clean:
 	$(MAKE) -C ../../Utilib/src clean
 	$(MAKE) -C ../../Ganlib/src clean
-	/bin/rm -f *.o *.a sub-make temp.* Trivac
+	/bin/rm -f *.o *.a sub-make temp.* Trivac $(DEPS_MK)

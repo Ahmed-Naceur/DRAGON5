@@ -1,7 +1,7 @@
 #---------------------------------------------------------------------------
 #
 #  Makefile for building the Ganlib library and load module
-#  Author : A. Hebert (2018-5-10)
+#  Author : A. Hebert (2018-5-10) and C. Bienvenue (2025-11-04)
 #
 #---------------------------------------------------------------------------
 #
@@ -19,6 +19,7 @@ endif
 DIRNAME = $(shell uname -sm | sed 's/[ ]/_/')
 OS = $(shell uname -s | cut -d"_" -f1)
 opt = -O -g
+.DEFAULT_GOAL := all
 PREPRO = cpp
 ifeq ($(openmp),1)
   COMP = -fopenmp
@@ -54,12 +55,11 @@ else
 endif
 
 ifeq ($(OS),AIX)
-  python_version_major := 2
+  PY := python
 else
-  python_version_full := $(wordlist 2,4,$(subst ., ,$(shell python --version 2>&1)))
-  python_version_major := $(word 1,${python_version_full})
-  ifneq ($(python_version_major),2)
-    python_version_major := 3
+  PY := $(shell command -v python3 2>/dev/null)
+  ifeq ($(PY),)
+    PY := $(shell command -v python 2>/dev/null)
   endif
 endif
 
@@ -152,7 +152,9 @@ else
       bin = ../bin/$(DIRNAME)_llvm
       lib_module = ../lib/$(DIRNAME)_llvm/modules
       FFLAGS += -mmlir -fdynamic-heap-array
-      LFLAGS += -lclang_rt.osx
+      ifeq ($(OS),Darwin)
+        LFLAGS += -lclang_rt.osx
+      endif
     else
       lib = ../lib/$(DIRNAME)
       bin = ../bin/$(DIRNAME)
@@ -167,20 +169,34 @@ ifeq ($(hdf5),1)
   LFLAGS += -L${HDF5_API} -lhdf5
 endif
 
-SRCC = $(shell ls *.c)
-SRC77 = $(shell ls *.f)
-SRCF77 = $(shell ls *.F)
-ifeq ($(python_version_major),2)
-  SRC90 = $(shell python ../../script/make_depend.py *.f90)
+SRCC = $(shell ls *.c 2>/dev/null)
+SRC77 = $(shell ls *.f 2>/dev/null)
+SRCF77 = $(shell ls *.F 2>/dev/null)
+ifeq ($(PY),)
+  $(warning No Python interpreter found; Fortran dependency ordering may be suboptimal)
+  SRC90 = $(shell ls *.f90 2>/dev/null)
+  SRCF90 = $(shell ls *.F90 2>/dev/null)
 else
-  SRC90 = $(shell python3 ../../script/make_depend_py3.py *.f90)
+  SRC90 = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90)
+  SRCF90 =
 endif
-SRCF90 = $(shell ls *.F90)
 OBJC = $(SRCC:.c=.o)
-OBJ90 = $(SRC90:.f90=.o)
+OBJ90 = $(patsubst %.f90,%.o,$(patsubst %.F90,%.o,$(SRC90)))
 OBJF90 = $(SRCF90:.F90=.o)
 OBJ77 = $(SRC77:.f=.o)
 OBJF77 = $(SRCF77:.F=.o)
+
+# Auto-generated dependency file capturing Fortran module and include deps
+DEPS_MK := .ganlib_deps.mk
+-include $(DEPS_MK)
+$(DEPS_MK): $(SRC90) $(SRC77) $(SRCF77)
+ifeq ($(PY),)
+	@echo "# Dependencies not generated: no Python available" > $(DEPS_MK)
+else
+	@echo "# Generating Fortran dependencies into $(DEPS_MK)"; \
+	$(PY) ../../script/make_depend.py --make-deps $(SRC90) $(SRC77) $(SRCF77) > $(DEPS_MK) || { rm -f $(DEPS_MK); exit 1; }
+endif
+
 all : sub-make Ganlib
 ifeq ($(mpi),1)
 	@echo 'Ganlib: mpi is defined'
@@ -200,27 +216,26 @@ endif
 ifeq ($(hdf5),1)
 	@echo 'Ganlib: hdf5 is defined'
 endif
-	@echo 'Ganlib: python version=' $(python_version_major)
+	@echo 'Ganlib: python=' $(PY)
 sub-make:
 %.o : %.c
 	$(C) $(CFLAGS) $(FLAGS) $(opt) $(COMP) -c $< -o $@
 %.o : %.f90
 	$(F90) $(FFLAGS) $(opt) $(COMP) -c $< -o $@
 %.o : %.F90
-	$(PREPRO) -P -W -traditional $(FLAGS) $< temp.f90
-	$(F90) $(FFLAGS) $(opt) $(COMP) -c temp.f90 -o $@
-	/bin/rm temp.f90
+	$(PREPRO) -P -W -traditional $(FLAGS) $< $(@:.o=.pp.f90)
+	$(F90) $(FFLAGS) $(opt) $(COMP) -c $(@:.o=.pp.f90) -o $@
+	/bin/rm -f $(@:.o=.pp.f90)
 %.o : %.f
-	@/bin/rm -f temp.f
 	$(F90) $(FFLAG77) $(opt) $(COMP) -c $< -o $@
 %.o : %.F
-	$(PREPRO) -P -W -traditional $(FLAGS) $(FMPI) $< temp.f
-	$(F90) $(FFLAG77) $(opt) $(COMP) -c temp.f -o $@
-	/bin/rm temp.f
+	$(PREPRO) -P -W -traditional $(FLAGS) $(FMPI) $< $(@:.o=.pp.f)
+	$(F90) $(FFLAG77) $(opt) $(COMP) -c $(@:.o=.pp.f) -o $@
+	/bin/rm -f $(@:.o=.pp.f)
 $(lib_module)/:
 	mkdir -p $(lib_module)/
-libGanlib.a: $(OBJC) $(OBJ90) $(OBJF90) $(OBJ77) $(OBJF77) $(lib_module)/
-	ar r $@ $(OBJC) $(OBJ90) $(OBJF90) $(OBJ77) $(OBJF77)
+libGanlib.a: $(DEPS_MK) $(OBJC) $(OBJ90) $(OBJF90) $(OBJ77) $(OBJF77) $(lib_module)/
+	ar rcs $@ $(OBJC) $(OBJ90) $(OBJF90) $(OBJ77) $(OBJF77)
 	cp $@ $(lib)/$@
 	cp *.mod $(lib_module)
 $(bin)/:
@@ -229,4 +244,4 @@ Ganlib: libGanlib.a GANMAIN.o $(bin)/
 	$(F90) $(opt) $(COMP) GANMAIN.o $(lib)/libGanlib.a $(LFLAGS) -o Ganlib
 	cp $@ $(bin)/$@
 clean:
-	/bin/rm -f *.o *.mod *.a sub-make temp.* Ganlib*
+	/bin/rm -f *.o *.mod *.a sub-make temp.* Ganlib* $(DEPS_MK) *.pp.f *.pp.f90
