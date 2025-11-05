@@ -10,14 +10,26 @@ else:
   from distutils.core import setup, Extension
 import sysconfig
 
+def _detect_gfortran_dir():
+  import subprocess, os
+  try:
+    out = subprocess.check_output(['gfortran', '-print-file-name=libgfortran.dylib'], text=True).strip()
+    if out and out != 'libgfortran.dylib':
+      d = os.path.dirname(out)
+      if os.path.isdir(d):
+        return d
+  except Exception:
+    pass
+  return None
+
 def main():
   import os
   from sysconfig import get_config_var
   mach = os.path.basename(os.getcwd())
   Code = os.environ.get("CODE_EMBEDDED", None) # Code selection
   Compiler = os.environ.get("COMPILER", None) # Compiler selection
-  FortranLib = os.environ.get(Compiler, None) # directory with libfortran.a
-  HDF5Lib = os.environ.get("HDF5_API", None) # directory with libhdf5.a
+  FortranLib = _detect_gfortran_dir() # directory with libfortran
+  HDF5Lib = os.environ.get("HDF5_API", None) # directory with libhdf5
   pylib = os.path.basename(get_config_var("LIBDIR")) # get lib or lib64
   print("install Cle2000 binding to", Code, "on directory",mach, "pylib=",pylib, "Compiler=",Compiler)
   if Compiler == "NVTOOLS":
@@ -49,6 +61,14 @@ def main():
     libDon="../../../Donjon/lib/"+mach
     extralink=["-lgfortran", ]
   print("debug Compiler=",Compiler,"libdir=",libdir,"Code=",Code)
+  if FortranLib:
+    print("debug FortranLib=", FortranLib)
+  if HDF5Lib:
+    print("debug HDF5Lib=", HDF5Lib)
+
+  # Build helper lists with None filtered out
+  def _dirs(*args):
+    return [d for d in args if d]
 
   if Code == "GANLIB":
     setup (name="Cle2000",
@@ -60,8 +80,8 @@ def main():
        ext_modules=[Extension('cle2000',sources=['cle2000module.c'],
                      extra_link_args = extralink,
                      include_dirs=["../../../Ganlib/src"],
-                     library_dirs=[libdir,FortranLib,HDF5Lib],
-                     runtime_library_dirs=[FortranLib,HDF5Lib],
+                     library_dirs=_dirs(libdir,FortranLib,HDF5Lib),
+                     runtime_library_dirs=_dirs(FortranLib,HDF5Lib),
                      libraries=["Ganlib","hdf5"] ) ])
   elif Code == "TRIVAC":
     setup (name="Cle2000",
@@ -74,8 +94,8 @@ def main():
                      define_macros=[('__trivac__', None)],
                      extra_link_args = extralink,
                      include_dirs=["../../../Ganlib/src"],
-                     library_dirs=[libdir,FortranLib,HDF5Lib,libUtl,libTri],
-                     runtime_library_dirs=[FortranLib,HDF5Lib],
+                     library_dirs=_dirs(libdir,FortranLib,HDF5Lib,libUtl,libTri),
+                     runtime_library_dirs=_dirs(FortranLib,HDF5Lib),
                      libraries=["Trivac","Utilib","Ganlib","hdf5"] ) ])
   elif Code == "DRAGON":
     setup (name="Cle2000",
@@ -88,8 +108,8 @@ def main():
                      define_macros=[('__dragon__', None)],
                      extra_link_args = extralink,
                      include_dirs=["../../../Ganlib/src"],
-                     library_dirs=[libdir,FortranLib,HDF5Lib,libUtl,libTri,libDra],
-                     runtime_library_dirs=[FortranLib,HDF5Lib],
+                     library_dirs=_dirs(libdir,FortranLib,HDF5Lib,libUtl,libTri,libDra),
+                     runtime_library_dirs=_dirs(FortranLib,HDF5Lib),
                      libraries=["Dragon","Trivac","Utilib","Ganlib","hdf5"] ) ])
   elif Code == "DONJON":
     setup (name="Cle2000",
@@ -102,8 +122,8 @@ def main():
                      define_macros=[('__donjon__', None)],
                      extra_link_args = extralink,
                      include_dirs=["../../../Ganlib/src"],
-                     library_dirs=[libdir,FortranLib,HDF5Lib,libUtl,libTri,libDra,libDon],
-                     runtime_library_dirs=[FortranLib,HDF5Lib],
+                     library_dirs=_dirs(libdir,FortranLib,HDF5Lib,libUtl,libTri,libDra,libDon),
+                     runtime_library_dirs=_dirs(FortranLib,HDF5Lib),
                      libraries=["Donjon","Dragon","Trivac","Utilib","Ganlib","hdf5"] ) ])
   elif Code == "GANLIB_OMP":
     setup (name="Cle2000",
@@ -115,8 +135,8 @@ def main():
        ext_modules=[Extension('cle2000',sources=['cle2000module.c'],
                      extra_link_args = ["-lgomp"]+extralink,
                      include_dirs=["../../../Ganlib/src"],
-                     library_dirs=[libdir,FortranLib,HDF5Lib],
-                     runtime_library_dirs=[FortranLib,HDF5Lib],
+                     library_dirs=_dirs(libdir,FortranLib,HDF5Lib),
+                     runtime_library_dirs=_dirs(FortranLib,HDF5Lib),
                      libraries=["Ganlib","hdf5"] ) ])
   elif Code == "TRIVAC_OMP":
     setup (name="Cle2000",
@@ -129,8 +149,8 @@ def main():
                      define_macros=[('__trivac__', None)],
                      extra_link_args = ["-lgomp"]+extralink,
                      include_dirs=["../../../Ganlib/src"],
-                     library_dirs=[libdir,FortranLib,HDF5Lib,libUtl,libTri],
-                     runtime_library_dirs=[FortranLib,HDF5Lib],
+                     library_dirs=_dirs(libdir,FortranLib,HDF5Lib,libUtl,libTri),
+                     runtime_library_dirs=_dirs(FortranLib,HDF5Lib),
                      libraries=["Trivac","Utilib","Ganlib","hdf5"] ) ])
   elif Code == "DRAGON_OMP":
     setup (name="Cle2000",
@@ -143,8 +163,8 @@ def main():
                      define_macros=[('__dragon__', None)],
                      extra_link_args = ["-lgomp"]+extralink,
                      include_dirs=["../../../Ganlib/src"],
-                     library_dirs=[libdir,FortranLib,HDF5Lib,libUtl,libTri,libDra],
-                     runtime_library_dirs=[FortranLib,HDF5Lib],
+                     library_dirs=_dirs(libdir,FortranLib,HDF5Lib,libUtl,libTri,libDra),
+                     runtime_library_dirs=_dirs(FortranLib,HDF5Lib),
                      libraries=["Dragon","Trivac","Utilib","Ganlib","hdf5"] ) ])
   elif Code == "DONJON_OMP":
     setup (name="Cle2000",
@@ -157,8 +177,8 @@ def main():
                      define_macros=[('__donjon__', None)],
                      extra_link_args = ["-lgomp"]+extralink,
                      include_dirs=["../../../Ganlib/src"],
-                     library_dirs=[libdir,FortranLib,HDF5Lib,libUtl,libTri,libDra,libDon],
-                     runtime_library_dirs=[FortranLib,HDF5Lib],
+                     library_dirs=_dirs(libdir,FortranLib,HDF5Lib,libUtl,libTri,libDra,libDon),
+                     runtime_library_dirs=_dirs(FortranLib,HDF5Lib),
                      libraries=["Donjon","Dragon","Trivac","Utilib","Ganlib","hdf5"] ) ])
   else:
     raise ValueError(Code+" is not implemented for setup.py bindings")

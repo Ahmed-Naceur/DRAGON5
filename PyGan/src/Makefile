@@ -16,6 +16,9 @@ PYTHONPATH = $(pylib)/python
 $(info set PYTHONPATH="$(PYTHONPATH)")
 export PYTHONPATH
 
+# Build defaults and phony targets
+.DEFAULT_GOAL := all
+
 ifeq ($(intel),1)
   ifeq ($(INTELTOOLS),)
     $(error INTELTOOLS is not set)
@@ -50,11 +53,11 @@ else
   endif
 endif
 export COMPILER
+#	export FORTRANPATH
 
-all:
-	$(MAKE) donjon
+all: donjon
 checkPython: ; @which python3 > /dev/null
-ganlib: clean sub-make-ganlib pygan-ganlib
+ganlib: sub-make-ganlib pygan-ganlib
 ifeq ($(openmp),1)
 	@echo 'pygan_ganlib: openmp is defined'
 endif
@@ -70,7 +73,7 @@ endif
 ifeq ($(hdf5),1)
 	@echo 'pygan_ganlib: hdf5 is defined'
 endif
-trivac: clean sub-make-trivac pygan-trivac
+trivac: sub-make-trivac pygan-trivac
 ifeq ($(openmp),1)
 	@echo 'pygan_trivac: openmp is defined'
 endif
@@ -86,7 +89,7 @@ endif
 ifeq ($(hdf5),1)
 	@echo 'pygan_trivac: hdf5 is defined'
 endif
-dragon: clean sub-make-dragon pygan-dragon
+dragon: sub-make-dragon pygan-dragon
 ifeq ($(openmp),1)
 	@echo 'pygan_dragon: openmp is defined'
 endif
@@ -102,7 +105,7 @@ endif
 ifeq ($(hdf5),1)
 	@echo 'pygan_dragon: hdf5 is defined'
 endif
-donjon: clean sub-make-donjon pygan-donjon
+donjon: sub-make-donjon pygan-donjon
 ifeq ($(openmp),1)
 	@echo 'pygan_donjon: openmp is defined'
 endif
@@ -119,14 +122,14 @@ ifeq ($(hdf5),1)
 	@echo 'pygan_donjon: hdf5 is defined'
 endif
 sub-make-ganlib:
-	$(MAKE) openmp=$(openmp) hdf5=$(hdf5) -C ../../Ganlib/src
+	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Ganlib/src
 sub-make-trivac: sub-make-ganlib
-	$(MAKE) openmp=$(openmp) -C ../../Utilib/src
-	$(MAKE) openmp=$(openmp) hdf5=$(hdf5) -C ../../Trivac/src
+	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) -C ../../Utilib/src
+	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Trivac/src
 sub-make-dragon: sub-make-trivac
-	$(MAKE) openmp=$(openmp) hdf5=$(hdf5) -C ../../Dragon/src
+	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Dragon/src
 sub-make-donjon: sub-make-dragon
-	$(MAKE) openmp=$(openmp) hdf5=$(hdf5) -C ../../Donjon/src
+	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Donjon/src
 libGanlib.a: $(lib)/ sub-make-ganlib
 	cp $(libGan)/libGanlib.a .
 	ar -d libGanlib.a xabort_c.o
@@ -144,8 +147,8 @@ ifeq ($(openmp),1)
 else
 	export CODE_EMBEDDED=GANLIB; cd $(DIRNAME); python3 setup_cle2000.py install --home=.
 endif
-	mv $(DIRNAME)/$(pylib)/* $(lib)/
-	/bin/rm -r $(DIRNAME)
+	cp -R $(DIRNAME)/$(pylib)/* $(lib)/
+	/bin/rm -rf $(DIRNAME)
 pygan-trivac: libGanlib.a sub-make-trivac checkPython
 	mkdir -p $(DIRNAME)
 	cp *.[ch] $(DIRNAME)
@@ -157,8 +160,8 @@ ifeq ($(openmp),1)
 else
 	export CODE_EMBEDDED=TRIVAC; cd $(DIRNAME); python3 setup_cle2000.py install --home=.
 endif
-	mv $(DIRNAME)/$(pylib)/* $(lib)/
-	/bin/rm -r $(DIRNAME)
+	cp -R $(DIRNAME)/$(pylib)/* $(lib)/
+	/bin/rm -rf $(DIRNAME)
 pygan-dragon: libGanlib.a sub-make-dragon checkPython
 	mkdir -p $(DIRNAME)
 	cp *.[ch] $(DIRNAME)
@@ -170,8 +173,8 @@ ifeq ($(openmp),1)
 else
 	export CODE_EMBEDDED=DRAGON; cd $(DIRNAME); python3 setup_cle2000.py install --home=.
 endif
-	mv $(DIRNAME)/$(pylib)/* $(lib)/
-	/bin/rm -r $(DIRNAME)
+	cp -R $(DIRNAME)/$(pylib)/* $(lib)/
+	/bin/rm -rf $(DIRNAME)
 pygan-donjon: libGanlib.a sub-make-donjon checkPython
 	mkdir -p $(DIRNAME)
 	cp *.[ch] $(DIRNAME)
@@ -183,8 +186,8 @@ ifeq ($(openmp),1)
 else
 	export CODE_EMBEDDED=DONJON; cd $(DIRNAME); python3 setup_cle2000.py install --home=.
 endif
-	mv $(DIRNAME)/$(pylib)/* $(lib)/
-	/bin/rm -r $(DIRNAME)
+	cp -R $(DIRNAME)/$(pylib)/* $(lib)/
+	/bin/rm -rf $(DIRNAME)
 	@echo 'makefile PYTHONPATH=' $(PYTHONPATH)
 clean:
 	@echo 'clean PyGan'

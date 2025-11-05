@@ -22,16 +22,25 @@ def main():
     extralink=["-lnvc","-lnvcpumath"]
   elif Compiler == "LLVMTOOLS":
     libdir="../../lib/"+mach+"_llvm"
-    libNv=" "
+    libNv=None
     extralink=[ ]
   elif Compiler == "INTELTOOLS":
     libdir="../../lib/"+mach+"_intel"
-    libNv=" "
+    libNv=None
     extralink=[ ]
   else:
     libdir="../../lib/"+mach
-    libNv=" "
+    libNv=None
     extralink=[ ]
+  # Filter out missing/empty library dirs to avoid "-L " warnings
+  def _dirs(*paths):
+    out=[]
+    for p in paths:
+      if p and isinstance(p, str) and os.path.isdir(p):
+        out.append(p)
+    return out
+  lib_dirs = _dirs(libdir, libNv)
+  rpath_dirs = _dirs(libNv)
   setup(name="Lcm",
           version="5.0",
           description="Python interface for the lcm C library API",
@@ -41,8 +50,8 @@ def main():
           ext_modules=[Extension("lcm", ["lcmmodule.c"],
                       extra_link_args = extralink,
                       include_dirs=["../../../Ganlib/src",incdir],
-                      library_dirs=[libdir,libNv],
-                      runtime_library_dirs=[libNv],
+                      library_dirs=lib_dirs,
+                      runtime_library_dirs=rpath_dirs,
                       libraries=["Ganlib"] ) ])
 
 if __name__ == "__main__":

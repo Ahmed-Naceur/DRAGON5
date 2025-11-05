@@ -1,7 +1,7 @@
 #---------------------------------------------------------------------------
 #
 #  Makefile for building the Dragon library and load module
-#  Author : A. Hebert (2018-5-10)
+#  Author : A. Hebert (2018-5-10) and C. Bienvenue (2025-11-04)
 #
 #---------------------------------------------------------------------------
 #
@@ -20,6 +20,7 @@ DIRNAME = $(shell uname -sm | sed 's/[ ]/_/')
 OS = $(shell uname -s | cut -d"_" -f1)
 opt = -O -g
 PREPRO = cpp
+.DEFAULT_GOAL := all
 ifeq ($(openmp),1)
   COMP = -fopenmp
   PREPRO = cpp -D_OPENMP
@@ -46,12 +47,11 @@ else
 endif
 
 ifeq ($(OS),AIX)
-  python_version_major := 2
+  PY := python
 else
-  python_version_full := $(wordlist 2,4,$(subst ., ,$(shell python --version 2>&1)))
-  python_version_major := $(word 1,${python_version_full})
-  ifneq ($(python_version_major),2)
-    python_version_major := 3
+  PY := $(shell command -v python3 2>/dev/null)
+  ifeq ($(PY),)
+    PY := $(shell command -v python 2>/dev/null)
   endif
 endif
 
@@ -158,7 +158,9 @@ else
       lib_module = ../lib/$(DIRNAME)_llvm/modules
       INCLUDE = -I../../Ganlib/lib/$(DIRNAME)_llvm/modules/
       FFLAGS += -mmlir -fdynamic-heap-array
-      LFLAGS += -lclang_rt.osx
+      ifeq ($(OS),Darwin)
+        LFLAGS += -lclang_rt.osx
+      endif
     else
       lib = ../lib/$(DIRNAME)
       libUtl = ../../Utilib/lib/$(DIRNAME)
@@ -177,18 +179,35 @@ ifeq ($(hdf5),1)
   LFLAGS += -L${HDF5_API} -lhdf5
 endif
 
-SRCC = $(shell ls *.c)
-SRC77 = $(shell ls *.f)
-SRCF77 = $(shell ls *.F)
-ifeq ($(python_version_major),2)
-  SRC90 = $(shell python ../../script/make_depend.py *.f90)
+FFLAGS += -cpp
+
+SRCC = $(shell ls *.c 2>/dev/null)
+SRC77 = $(filter-out %.pp.f,$(shell ls *.f 2>/dev/null))
+SRCF77 = $(shell ls *.F 2>/dev/null)
+ifeq ($(PY),)
+  $(warning No Python interpreter found; Fortran dependency ordering may be suboptimal)
+  SRC90_RAW = $(shell ls *.f90 *.F90 2>/dev/null)
+  SRC90 = $(filter-out %.pp.f90,$(SRC90_RAW))
 else
-  SRC90 = $(shell python3 ../../script/make_depend_py3.py *.f90)
+  SRC90_RAW = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90)
+  SRC90 = $(filter-out %.pp.f90,$(SRC90_RAW))
 endif
 OBJC = $(SRCC:.c=.o)
-OBJ90 = $(SRC90:.f90=.o)
+OBJ90 = $(patsubst %.f90,%.o,$(patsubst %.F90,%.o,$(SRC90)))
 OBJ77 = $(SRC77:.f=.o)
 OBJF77 = $(SRCF77:.F=.o)
+
+# Auto-generated dependency file capturing Fortran module and include deps
+DEPS_MK := .dragon_deps.mk
+-include $(DEPS_MK)
+$(DEPS_MK): $(SRC90) $(SRC77) $(SRCF77)
+ifeq ($(PY),)
+	@echo "# Dependencies not generated: no Python available" > $(DEPS_MK)
+else
+	@echo "# Generating Fortran dependencies into $(DEPS_MK)"; \
+	$(PY) ../../script/make_depend.py --make-deps $(SRC90) $(SRC77) $(SRCF77) > $(DEPS_MK) || { rm -f $(DEPS_MK); exit 1; }
+endif
+
 all : sub-make Dragon
 ifeq ($(openmp),1)
 	@echo 'Dragon: openmp is defined'
@@ -206,26 +225,29 @@ ifeq ($(hdf5),1)
 	@echo 'Dragon: hdf5 is defined'
 endif
 sub-make:
+	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Utilib/src
+	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Ganlib/src
 	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Trivac/src
 %.o : %.c
 	$(C) $(CFLAGS) $(opt) $(COMP) -c $< -o $@
 %.o : %.f90
 	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
+%.o : %.F90
+	# Use Fortran compiler's integrated preprocessor instead of cpp -traditional
+	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) $(FLAGS) -c $< -o $@
 %.o : %.f
-	@/bin/rm -f temp.f
 	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
 %.o : %.F
-	$(PREPRO) -P -W -traditional  $(FLAGS) $< temp.f
-	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c temp.f -o $@
-	/bin/rm temp.f
+	# Use Fortran compiler's integrated preprocessor only for .F (not for .f)
+	$(F90) $(FFLAG77) -cpp $(opt) $(COMP) $(INCLUDE) $(FLAGS) -c $< -o $@
 $(lib_module)/:
 	mkdir -p $(lib_module)/
 $(lib)/: $(lib_module)/
 	mkdir -p $(lib)/
-libDragon.a: $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib)/
-	ar r $@ $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77)
+libDragon.a: $(DEPS_MK) $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib)/
+	ar rcs $@ $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77)
 	cp $@ $(lib)/$@
-	cp *.mod $(lib_module)
+	if ls *.mod 1> /dev/null 2>&1; then cp *.mod $(lib_module); fi
 $(bin)/:
 	mkdir -p $(bin)/
 Dragon: libDragon.a DRAGON.o $(bin)/ sub-make
@@ -234,4 +256,4 @@ Dragon: libDragon.a DRAGON.o $(bin)/ sub-make
 	cp $@ $(bin)/$@
 clean:
 	$(MAKE) -C ../../Trivac/src clean
-	/bin/rm -f *.o *.mod *.a sub-make temp.* Dragon
+	/bin/rm -f *.o *.mod *.a sub-make temp.* Dragon $(DEPS_MK) *.pp.f *.pp.f90

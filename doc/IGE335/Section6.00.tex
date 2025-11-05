@@ -42,6 +42,12 @@ make
 make clean
 \end{verbatim}
 
+To speed up the build, run make with multiple jobs using the \texttt{-jN} option.  For example, to run 8 parallel jobs:
+\begin{verbatim}
+make -j8
+make clean
+\end{verbatim}
+
 \noindent To build an OpenMP-enabled version, simply write
 \begin{verbatim}
 make openmp=1
