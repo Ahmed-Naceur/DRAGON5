@@ -228,16 +228,16 @@ sub-make:
 	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Utilib/src
 	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Ganlib/src
 	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Trivac/src
-%.o : %.c
+%.o : %.c | sub-make
 	$(C) $(CFLAGS) $(opt) $(COMP) -c $< -o $@
-%.o : %.f90
+%.o : %.f90 | sub-make
 	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
-%.o : %.F90
+%.o : %.F90 | sub-make
 	# Use Fortran compiler's integrated preprocessor instead of cpp -traditional
 	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) $(FLAGS) -c $< -o $@
-%.o : %.f
+%.o : %.f | sub-make
 	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
-%.o : %.F
+%.o : %.F | sub-make
 	# Use Fortran compiler's integrated preprocessor only for .F (not for .f)
 	$(F90) $(FFLAG77) -cpp $(opt) $(COMP) $(INCLUDE) $(FLAGS) -c $< -o $@
 $(lib_module)/:
