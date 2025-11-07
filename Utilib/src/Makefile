@@ -130,6 +130,9 @@ else
       FFLAGS += -mmlir -fdynamic-heap-array
       ifeq ($(OS),Darwin)
         LFLAGS += -lclang_rt.osx
+        ifeq ($(openmp),1)
+          LFLAGS += -L/opt/homebrew/opt/libomp/lib -L/usr/local/opt/libomp/lib -lomp
+        endif
       endif
     else
       lib = ../lib/$(DIRNAME)
