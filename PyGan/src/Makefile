@@ -191,8 +191,7 @@ endif
 	@echo 'makefile PYTHONPATH=' $(PYTHONPATH)
 clean:
 	@echo 'clean PyGan'
-	@echo '**********************************************'
-	@echo '*** You should also clean Dragon or Donjon ***'
-	@echo '**********************************************'
+	$(MAKE) -C ../../Dragon/src clean
+	$(MAKE) -C ../../Donjon/src clean
 	/bin/rm -r -f ../lib
 	/bin/rm -f sub-make*

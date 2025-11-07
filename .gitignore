@@ -11,6 +11,7 @@ Trivac/src/Trivac
 *.o
 *.mod
 *.a
+*.mk
 
 .DS_Store
 
