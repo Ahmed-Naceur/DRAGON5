@@ -465,8 +465,8 @@ CONTAINS
                 CALL XABORT(HSMG)
               ENDIF
             ELSE IF(TYPGEO.EQ.9) THEN
-              IF((ANGLE/=0.0).AND.(ANGLE/=PI/6._PDB).AND.(ANGLE/=2._PDB*PI/3._PDB).AND. &
-              & (ANGLE/=PI).AND.(ANGLE/=7._PDB*PI/6._PDB).AND.(ANGLE/=5._PDB*PI/3._PDB)) THEN
+              IF((ANGLE/=0.0).AND.(ANGLE/=PI/3._PDB).AND.(ANGLE/=2._PDB*PI/3._PDB).AND. &
+              & (ANGLE/=PI).AND.(ANGLE/=4._PDB*PI/3._PDB).AND.(ANGLE/=5._PDB*PI/3._PDB)) THEN
                 WRITE(HSMG,100) ANGLE,I,TYPGEO
                 CALL XABORT(HSMG)
               ENDIF
