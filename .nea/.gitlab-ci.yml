@@ -180,10 +180,9 @@ test_pygan_ubuntu22:
 docker_ubuntu24_slim:
   stage: deploy
   image:
-    # recommended image for building with kaniko
-    # https://docs.gitlab.com/ee/ci/docker/using_kaniko.html#building-a-docker-image-with-kaniko
-    name: ${DOCKER_BASE_REPO}/dragon/5.1/kaniko:v1.23.0-debug
-    entrypoint: [""]
+    # buildah v1.41.4 was manually put on runners, don't pull if present to avoid network delay
+    name: quay.io/buildah/stable:v1.41.4
+    pull_policy: if-not-present
   needs:
   - job: test_ganlib_ubuntu22
     artifacts: false
@@ -194,24 +193,14 @@ docker_ubuntu24_slim:
   - job: test_pygan_ubuntu22
     artifacts: false
   script:
-    - |
-      cat <<EOF > /kaniko/.docker/config.json
-      {
-        "auths": {
-          "docker.oecd-nea.org": {
-            "username": "$CI_DEPLOY_USER",
-            "password": "$CI_DEPLOY_PASSWORD"
-          }
-        }
-      }
-      EOF
-    # TODO: change the hardcoded docker tag to use a git tag
-    - >
-      /kaniko/executor
-      --context "${CI_PROJECT_DIR}"
-      --dockerfile "${CI_PROJECT_DIR}/.nea/docker/Dockerfile.slim"
-      --destination "${DOCKER_BASE_REPO}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:${CI_COMMIT_TAG}-slim"
-      --single-snapshot --cache=false
+    # Required so that we don't use the FUSE driver (doesn't work in root-less builds)
+    - sed -i 's/^driver = .*/driver = "vfs"/' /etc/containers/storage.conf
+    - buildah login -u ${CI_DEPLOY_USER} -p ${CI_DEPLOY_PASSWORD} ${DOCKER_BASE_REPO}
+    - buildah build --env CI_REGISTRY_IMAGE --file "${CI_PROJECT_DIR}/.nea/docker/Dockerfile.slim" --tag "${DOCKER_BASE_REPO}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:${CI_COMMIT_TAG}-slim" .
+    - buildah push ${DOCKER_BASE_REPO}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:${CI_COMMIT_TAG}-slim
+    # also build for arm
+    - buildah build --platform=linux/arm64/v8 --env CI_REGISTRY_IMAGE --file "${CI_PROJECT_DIR}/.nea/docker/Dockerfile.slim" --tag "${DOCKER_BASE_REPO}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:${CI_COMMIT_TAG}-arm64" .
+    - buildah push ${DOCKER_BASE_REPO}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}:${CI_COMMIT_TAG}-arm64
   rules:
     - if: '$CI_COMMIT_TAG =~ /v+\d+\.\d+\.\d+/'
 
