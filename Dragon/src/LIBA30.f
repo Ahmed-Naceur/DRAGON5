@@ -430,7 +430,7 @@
 *----
         WRITE(RECNAM,'(9HIsotopes/,A,11H/HomoRates/)') TRIM(HNISOR)
         IF(.NOT.hdf5_group_exists(IPAP2,TRIM(RECNAM))) THEN
-          WRITE(HSMG,'(38HLIBA30: missing HomoRates in group ,A,1H.)')
+          WRITE(HSMG,'(35HLIBA30: missing HomoRates in group ,A,1H.)')
      1    TRIM(RECNAM)
           CALL XABORT(HSMG)
         ENDIF
