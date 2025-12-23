@@ -465,16 +465,16 @@ WHILE IndexCB 2 <= DO
       ;
       ECHO "...CASE=" CASE "IndexCB=" IndexCB ;
       IF CASE 1 = IndexCB 1 = * THEN
-         assertS FLUX_REF :: K-EFFECTIVE 1 1.178396 ;
+         assertS FLUX_REF :: K-EFFECTIVE 1 1.178190 ;
          _VAL_CA1_CB1 := OVAL ;
       ELSEIF CASE 2 = IndexCB 1 = * THEN
-         assertS FLUX_REF :: K-EFFECTIVE 1 1.289101 ;
+         assertS FLUX_REF :: K-EFFECTIVE 1 1.288893 ;
          _VAL_CA2_CB1 := OVAL ;
       ELSEIF CASE 1 = IndexCB 2 = * THEN
-         assertS FLUX_REF :: K-EFFECTIVE 1 1.176606 ;
+         assertS FLUX_REF :: K-EFFECTIVE 1 1.176635 ;
          _VAL_CA1_CB2 := OVAL ;
       ELSEIF CASE 2 = IndexCB 2 = * THEN
-         assertS FLUX_REF :: K-EFFECTIVE 1 1.287891 ;
+         assertS FLUX_REF :: K-EFFECTIVE 1 1.287811 ;
          _VAL_CA2_CB2 := OVAL ;
       ENDIF ;
       FLUX_REF MACRO OVAL := DELETE: FLUX_REF MACRO OVAL ;

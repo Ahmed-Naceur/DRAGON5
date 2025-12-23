@@ -146,7 +146,7 @@ test_dragon_ubuntu22:
   script:
     - cd ${DRAGON_LIB_DIR}
     # get JEF 2.2 for testing
-    - wget --no-check-certificate https://git.oecd-nea.org/dragon/libraries/-/raw/main/l_endian/draglibJef2p2.gz
+    - wget --no-check-certificate https://git.oecd-nea.org/dragon/libraries/-/raw/main/l_endian/draglibJef2p2_v5p1.gz
     # get JEF 3.1.1 for OpenMP testing
     - wget --no-check-certificate https://git.oecd-nea.org/dragon/libraries/-/raw/main/l_endian/draglibJeff3p1p1SHEM295_v5p1.gz
     - cd ${DRAGON_CODE_DIR}/Dragon

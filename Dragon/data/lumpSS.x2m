@@ -200,11 +200,11 @@ WHILE istep maxstep < DO
 *  NON-REGRESSION                                          *
 ************************************************************
   IF istep 1 = THEN
-    assertS FLUX :: K-EFFECTIVE 1 1.329496 ;
+    assertS FLUX :: K-EFFECTIVE 1 1.329378 ;
   ELSEIF istep 2 = THEN
-    assertS FLUX :: K-EFFECTIVE 1 1.314796 ;
+    assertS FLUX :: K-EFFECTIVE 1 1.314567 ;
   ELSEIF istep 3 = THEN
-    assertS FLUX :: K-EFFECTIVE 1 1.292124 ;
+    assertS FLUX :: K-EFFECTIVE 1 1.291854 ;
   ENDIF ;
 
 ************************************************************
