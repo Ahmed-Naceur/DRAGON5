@@ -8,10 +8,10 @@ if [ $# = 0 ]
    exit 1
 fi
 echo access a2b_drglib_endfb8r1_v5p1_shem281.access
-if [ -f "$1"/../Njoy2012/python/shem281_endfb8r1_v5p1/draglibshem281_endfb8r1_v5p1.gz ]
+if [ -f "$1"/../Njoy2016/python/shem281_endfb8r1_v5p1/draglibshem281_endfb8r1_v5p1.gz ]
    then
     echo 'gunzipping library'
-    gunzip "$1"/../Njoy2012/python/shem281_endfb8r1_v5p1/draglibshem281_endfb8r1_v5p1.gz
+    gunzip "$1"/../Njoy2016/python/shem281_endfb8r1_v5p1/draglibshem281_endfb8r1_v5p1.gz
 fi
-ln -s "$1"/../Njoy2012/python/shem281_endfb8r1_v5p1/draglibshem281_endfb8r1_v5p1 EXPORT
+ln -s "$1"/../Njoy2016/python/shem281_endfb8r1_v5p1/draglibshem281_endfb8r1_v5p1 EXPORT
 ls -l

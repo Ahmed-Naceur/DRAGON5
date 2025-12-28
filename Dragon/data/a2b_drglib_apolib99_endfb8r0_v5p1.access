@@ -8,10 +8,10 @@ if [ $# = 0 ]
    exit 1
 fi
 echo access a2b_drglib_apolib99_endfb7r1.access
-if [ -f "$1"/../Njoy2012/python/apolib99_endfb7r1/draglibapolib99_endfb7r1.gz ]
+if [ -f "$1"/../Njoy2016/python/apolib99_endfb7r1/draglibapolib99_endfb7r1.gz ]
    then
     echo 'gunzipping library'
-    gunzip "$1"/../Njoy2012/python/apolib99_endfb7r1/draglibapolib99_endfb7r1.gz
+    gunzip "$1"/../Njoy2016/python/apolib99_endfb7r1/draglibapolib99_endfb7r1.gz
 fi
-ln -s "$1"/../Njoy2012/python/apolib99_endfb7r1/draglibapolib99_endfb7r1 EXPORT
+ln -s "$1"/../Njoy2016/python/apolib99_endfb7r1/draglibapolib99_endfb7r1 EXPORT
 ls -l
