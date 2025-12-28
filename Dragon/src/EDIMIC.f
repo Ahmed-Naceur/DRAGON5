@@ -3,8 +3,8 @@
      1 NDEPL,ISONAM,ISONRF,IPISO,MIX,TN,NED,HVECT,NOUT,HVOUT,IPRINT,
      2 NGROUP,NGCOND,NBMIX,NREGIO,NMERGE,NDFI,NDFP,ILEAKS,ILUPS,NW,
      3 MATCOD,VOLUME,KEYFLX,CURNAM,IGCOND,IMERGE,FLUXES,AFLUXE,EIGENK,
-     4 EIGINF,B2,DEN,ITYPE,IEVOL,LSISO,EMEVF,EMEVG,DECAY,YIELD,FIPI,
-     5 FIFP,PYIELD,ITRANC,LISO,NMLEAK)
+     4 EIGINF,B2,DEN,ITYPE,IEVOL,LSISO,EMEVF,DECAY,YIELD,FIPI,FIFP,
+     5 PYIELD,ITRANC,LISO,NMLEAK)
 *
 *-----------------------------------------------------------------------
 *
@@ -78,7 +78,6 @@
 *         1 is used to force an isotope to be non-depleting.
 * LSISO   flag for isotopes saved.
 * EMEVF   fission production energy.
-* EMEVG   capture production energy.
 * DECAY   radioactive decay constant.
 * YIELD   group-ordered condensed fission product yield.
 * FIPI    fissile isotope index assigned to each microlib isotope.
@@ -104,7 +103,7 @@
      5          FIPI(NBISO,NMERGE),FIFP(NBISO,NMERGE),ITRANC,NMLEAK
       REAL      TN(NBISO),VOLUME(NREGIO),FLUXES(NREGIO,NGROUP,NW+1),
      1          AFLUXE(NREGIO,NGROUP,NW+1),EIGENK,EIGINF,B2(4),
-     2          DEN(NBISO),EMEVF(NBISO),EMEVG(NBISO),DECAY(NBISO),
+     2          DEN(NBISO),EMEVF(NBISO),DECAY(NBISO),
      3          YIELD(NGCOND+1,NDFP,NMERGE),PYIELD(NDFI,NDFP,NMERGE)
       CHARACTER HVECT(NED)*8,HVOUT(NOUT)*8,CURNAM*12
       LOGICAL   LISO
@@ -113,7 +112,7 @@
 *----
       PARAMETER (NSTATE=40,MAXESP=4)
       TYPE(C_PTR) JPLIB,KPLIB,JPFLUX,JPEDIT,KPEDIT
-      LOGICAL    LOGIC,LSTRD,LAWR,LMEVF,LMEVG,LDECA,LWD,LONE
+      LOGICAL    LOGIC,LSTRD,LAWR,LMEVF,LDECA,LWD,LONE
       CHARACTER  CM*2,HNEW*12,TEXT8*8,TEXT12*12,HSMG*131,HNAMIS*12
       INTEGER    IPAR(NSTATE),IESP2(MAXESP+1)
       REAL       B2T(3),EESP(MAXESP+1),EESP2(MAXESP+1)
@@ -385,7 +384,6 @@
       LAWR=.FALSE.
       LDECA=.FALSE.
       LMEVF=.FALSE.
-      LMEVG=.FALSE.
       DO 145 IW=1,MIN(NW+1,10)
         WRITE(HMAKE(IW),'(3HNWT,I1)') IW-1
         IF(IADJ.EQ.1) WRITE(HMAKE(1+NW+IW),'(4HNWAT,I1)') IW-1
@@ -434,9 +432,6 @@
                CALL LCMLEN(KPLIB,'MEVF',LENGTH,ITYLCM)
                IF(LENGTH.EQ.1) CALL LCMGET(KPLIB,'MEVF',EMEVF(ISO))
                LMEVF=(LENGTH.EQ.1).OR.(EMEVF(ISO).GT.0.0)
-               CALL LCMLEN(KPLIB,'MEVG',LENGTH,ITYLCM)
-               IF(LENGTH.EQ.1) CALL LCMGET(KPLIB,'MEVG',EMEVG(ISO))
-               LMEVG=(LENGTH.EQ.1).OR.(EMEVG(ISO).GT.0.0)
                CALL LCMLEN(KPLIB,'DECAY',LENGTH,ITYLCM)
                IF(LENGTH.EQ.1) CALL LCMGET(KPLIB,'DECAY',DECAY(ISO))
                LDECA=(LENGTH.EQ.1).OR.(DECAY(ISO).GT.0.0)
@@ -520,23 +515,6 @@
             IF(LENGTH.GT.0) THEN
                CALL LCMGET(KPLIB,'H-FACTOR',GAR(1,5+NED+NL+3*NW))
                HMAKE(5+NED+NL+3*NW)='H-FACTOR'
-            ELSE
-               IF(LMEVF) THEN
-                  CALL LCMGET(KPLIB,'NFTOT',WORK)
-                  HMAKE(5+NED+NL+3*NW)='H-FACTOR'
-                  DO 190 IGR=1,NGROUP
-                  GAR(IGR,5+NED+NL+3*NW)=GAR(IGR,5+NED+NL+3*NW)+
-     1            WORK(IGR)*EMEVF(ISO)*REAL(CONV)
-  190             CONTINUE
-               ENDIF
-               IF(LMEVG) THEN
-                  CALL LCMGET(KPLIB,'NG',WORK)
-                  HMAKE(5+NED+NL+3*NW)='H-FACTOR'
-                  DO 195 IGR=1,NGROUP
-                  GAR(IGR,5+NED+NL+3*NW)=GAR(IGR,5+NED+NL+3*NW)+
-     1            WORK(IGR)*EMEVG(ISO)*REAL(CONV)
-  195             CONTINUE
-               ENDIF
             ENDIF
             DO 200 IED=1,NED
             IF(HVECT(IED).EQ.'H-FACTOR') GO TO 200
@@ -811,7 +789,6 @@
             CALL LCMPTC(KPEDIT,'ALIAS',12,HNEW)
             IF(LAWR)  CALL LCMPUT(KPEDIT,'AWR',1,2,AWR)
             IF(LMEVF) CALL LCMPUT(KPEDIT,'MEVF',1,2,EMEVF(ISO))
-            IF(LMEVG) CALL LCMPUT(KPEDIT,'MEVG',1,2,EMEVG(ISO))
             IF(LDECA) CALL LCMPUT(KPEDIT,'DECAY',1,2,DECAY(ISO))
             DO 380 J=1,MAXH
             IF(HMAKE(J).NE.' ') THEN

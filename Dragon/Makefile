@@ -69,6 +69,8 @@ tests :
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q pincell_mco.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q pincell_sap.x2m
 ifeq ($(apolib),1)
+	./rdragon -c $(fcompilerSuite) -p $(nomp) -q tapollo1.x2m
+	./rdragon -c $(fcompilerSuite) -p $(nomp) -q tapollo2.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q uo2_evo_xsm.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q uo2_evo_hdf.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q ASSBLY_CASEA_1level_apex_boron.x2m
