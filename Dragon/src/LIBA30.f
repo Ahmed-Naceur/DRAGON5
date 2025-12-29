@@ -502,8 +502,9 @@
           VALUE=0.0
           IF(hdf5_group_exists(IPAP1,TRIM(RECNAM)//'/FISS')) THEN
             WRITE(RECNA2,'(A,16HFISS/EnergyValue)') TRIM(RECNAM)
+            CALL LCMLEN(KPLIB,'NFTOT',ILENG,ITYLCM)
             CALL hdf5_read_data(IPAP1,TRIM(RECNA2),VALUE)
-            IF(VALUE.NE.0.0) THEN
+            IF((ILENG.EQ.NGRO).AND.(VALUE.NE.0.0)) THEN
               CALL LCMGET(KPLIB,'NFTOT',SECT)
               HFACT(:NGRO)=HFACT(:NGRO)+SECT(:NGRO)*VALUE*1.0E6
               LH=.TRUE.

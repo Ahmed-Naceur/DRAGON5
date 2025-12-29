@@ -950,8 +950,9 @@
 *        FISSION ENERGIES.
          CALL LCMLEN(IPAP,'EF',NV,ITYLCM)
          IF(NV.NE.0) THEN
+            CALL LCMLEN(KPLIB,'NFTOT',LENGT,ITYLCM)
             CALL LCMGET(IPAP,'EF',VALUE)
-            IF(VALUE.NE.0.0) THEN
+            IF((LENGT.EQ.NGRO).AND.(VALUE.NE.0.0)) THEN
               CALL LCMGET(KPLIB,'NFTOT',SECT)
               HFACT(:NGRO)=HFACT(:NGRO)+SECT(:NGRO)*VALUE*1.0E6
               LH=.TRUE.
