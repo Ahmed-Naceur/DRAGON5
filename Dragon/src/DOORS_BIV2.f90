@@ -1,10 +1,10 @@
-SUBROUTINE DOORS_BIV(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
+SUBROUTINE DOORS_BIV2(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
   !
   !-----------------------------------------------------------------------
   !
   !Purpose:
   ! Compute the source for the solution of diffusion or PN equations.
-  ! Use a BIVAC tracking.
+  ! Use a BIVAC tracking without a flat flux approximation
   !
   !Copyright:
   ! Copyright (C) 2025 Ecole Polytechnique de Montreal
@@ -24,8 +24,7 @@ SUBROUTINE DOORS_BIV(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
   ! MATCOD  mixture indices.
   ! VOL     volumes. Volumes are included in SUNKNO.
   ! SIGG    cross section.
-  ! FUNKNO  optional unknown vector. If not present, a flat flux
-  !         approximation is assumed.
+  ! FUNKNO  unknown vector.
   !
   !Parameters: input/output
   ! SUNKNO  integrated sources.
@@ -38,8 +37,7 @@ SUBROUTINE DOORS_BIV(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
   !----
   TYPE(C_PTR) IPTRK
   INTEGER NANIS,NREG,NMAT,NUN,MATCOD(NREG)
-  REAL VOL(NREG),SIGG(0:NMAT,NANIS+1),SUNKNO(NUN)
-  REAL, OPTIONAL :: FUNKNO(NUN)
+  REAL VOL(NREG),SIGG(0:NMAT,NANIS+1),SUNKNO(NUN),FUNKNO(NUN)
   !----
   !  LOCAL VARIABLES
   !----
@@ -49,8 +47,8 @@ SUBROUTINE DOORS_BIV(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
   !  RECOVER BIVAC SPECIFIC PARAMETERS.
   !----
   CALL LCMGET(IPTRK,'STATE-VECTOR',JPAR)
-  IF(JPAR(1).NE.NREG) CALL XABORT('DOORS_BIV: INCONSISTENT NREG.')
-  IF(JPAR(2).NE.NUN) CALL XABORT('DOORS_BIV: INCONSISTENT NUN.')
+  IF(JPAR(1).NE.NREG) CALL XABORT('BIV2: INCONSISTENT NREG.')
+  IF(JPAR(2).NE.NUN) CALL XABORT('BIV2: INCONSISTENT NUN.')
   ITYPE=JPAR(6)
   IELEM=JPAR(8)
   ICOL=JPAR(9)
@@ -59,30 +57,30 @@ SUBROUTINE DOORS_BIV(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
     ! Cartesian 1D or 2D geometry
     IF((IELEM.GT.0).AND.(ICOL.LE.3)) THEN
       ! Raviart-Thomas / diffusion or SPN
-      CALL DOORS_BIVGSO(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
+      CALL BIV2GSO2(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
     ELSE IF((IELEM.LT.0).AND.(NLF.EQ.0)) THEN
       ! Lagrange / diffusion
-      CALL DOORS_BIVFSO(IPTRK,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
+      CALL BIV2FSO2(IPTRK,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
     ELSE
-      CALL XABORT('DOORS_BIV: DISCRETIZATION TYPE NOT AVAILABLE(1).')
+      CALL XABORT('BIV2: DISCRETIZATION TYPE NOT AVAILABLE(1).')
     ENDIF
   ELSE IF(ITYPE.EQ.8) THEN
     ! Hexagonal 2D geometry
     IF((IELEM.GT.0).AND.(ICOL.LE.3)) THEN
       ! Raviart-Thomas / diffusion or SPN
-      CALL DOORS_BIVGSO(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
+      CALL BIV2GSO2(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
     ELSE IF((IELEM.LT.0).AND.(NLF.EQ.0)) THEN
       ! Lagrange / diffusion
-      CALL DOORS_BIVFSH(IPTRK,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
+      CALL BIV2FSH(IPTRK,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
     ELSE
-      CALL XABORT('DOORS_BIV: DISCRETIZATION TYPE NOT AVAILABLE(2).')
+      CALL XABORT('BIV2: DISCRETIZATION TYPE NOT AVAILABLE(2).')
     ENDIF
   ELSE
-    CALL XABORT('DOORS_BIV: GEOMETRY TYPE NOT AVAILABLE.')
+    CALL XABORT('BIV2: GEOMETRY TYPE NOT AVAILABLE.')
   ENDIF
   RETURN
 CONTAINS
-  SUBROUTINE DOORS_BIVFSO(IPTRK,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
+  SUBROUTINE BIV2FSO2(IPTRK,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
     !
     !-----------------------------------------------------------------------
     !
@@ -98,8 +96,7 @@ CONTAINS
     !----
     TYPE(C_PTR) IPTRK
     INTEGER NREG,NMAT,NUN,MATCOD(NREG)
-    REAL VOL(NREG),SIGG(0:NMAT),SUNKNO(NUN)
-    REAL, OPTIONAL :: FUNKNO(NUN)
+    REAL VOL(NREG),SIGG(0:NMAT),SUNKNO(NUN),FUNKNO(NUN)
     !----
     !  LOCAL VARIABLES
     !----
@@ -125,7 +122,7 @@ CONTAINS
     ISPN=JPAR(15)
     ISCAT=JPAR(16)
     CYLIND=(ITYPE.EQ.3).OR.(ITYPE.EQ.6)
-    IF(IELEM.GT.0) CALL XABORT('DOORS_BIVFSO: LAGRANGE METHOD EXPECTED.')
+    IF(IELEM.GT.0) CALL XABORT('BIV2FSO: LAGRANGE METHOD EXPECTED.')
     CALL LCMSIX(IPTRK,'BIVCOL',1)
     CALL LCMLEN(IPTRK,'T',LC,ITYLCM)
     ALLOCATE(R(LC,LC),RS(LC,LC),T(LC),TS(LC))
@@ -152,75 +149,44 @@ CONTAINS
     !----
     !  COMPUTE THE SOURCE
     !----
-    IF(PRESENT(FUNKNO)) THEN
-      NUM1=0
-      DO K=1,NREG
-        IBM=MATCOD(K)
-        IF(IBM.LE.0) CYCLE
-        IF(VOL(K).EQ.0.0) GO TO 10
-        DO I=1,LL
-          IND1=KN(NUM1+I)
-          IF(IND1.EQ.0) CYCLE
-          I1=IJ1(I)
-          I2=IJ2(I)
-          DO J=1,LL
-            IND2=KN(NUM1+J)
-            IF(IND2.EQ.0) CYCLE
-            IF(CYLIND) THEN
-              RR=(R(I1,IJ1(J))+RS(I1,IJ1(J))*XX(K)/DD(K))*R(I2,IJ2(J))*VOL(K)
-            ELSE
-              RR=R(I1,IJ1(J))*R(I2,IJ2(J))*VOL(K)
-            ENDIF
-            SUNKNO(IND1)=SUNKNO(IND1)+RR*FUNKNO(IND2)*SIGG(IBM)
-          ENDDO ! J
-        ENDDO ! I
-        10 NUM1=NUM1+LL
-      ENDDO ! K
-    ELSE
-      ! Assume a flat flux
-      NUM1=0
-      DO K=1,NREG
-        IBM=MATCOD(K)
-        IF(IBM.LE.0) CYCLE
-        IF(VOL(K).EQ.0.0) GO TO 20
-        DO I=1,LL
-          IND1=KN(NUM1+I)
-          IF(IND1.EQ.0) CYCLE
+    NUM1=0
+    DO K=1,NREG
+      IBM=MATCOD(K)
+      IF(IBM.LE.0) CYCLE
+      IF(VOL(K).EQ.0.0) GO TO 10
+      DO I=1,LL
+        IND1=KN(NUM1+I)
+        IF(IND1.EQ.0) CYCLE
+        I1=IJ1(I)
+        I2=IJ2(I)
+        DO J=1,LL
+          IND2=KN(NUM1+J)
+          IF(IND2.EQ.0) CYCLE
           IF(CYLIND) THEN
-            SS=(T(IJ1(I))+TS(IJ1(I))*XX(K)/DD(K))*T(IJ2(I))*VOL(K)
+            RR=(R(I1,IJ1(J))+RS(I1,IJ1(J))*XX(K)/DD(K))*R(I2,IJ2(J))*VOL(K)
           ELSE
-            SS=T(IJ1(I))*T(IJ2(I))*VOL(K)
+            RR=R(I1,IJ1(J))*R(I2,IJ2(J))*VOL(K)
           ENDIF
-          SUNKNO(IND1)=SUNKNO(IND1)+SS*SIGG(IBM)
-        ENDDO ! I
-        20 NUM1=NUM1+LL
-      ENDDO ! K
-    ENDIF
+          SUNKNO(IND1)=SUNKNO(IND1)+RR*FUNKNO(IND2)*SIGG(IBM)
+        ENDDO ! J
+      ENDDO ! I
+      10 NUM1=NUM1+LL
+    ENDDO ! K
     !----
     !  APPEND THE INTEGRATED VOLUMIC SOURCES
     !----
-    IF(PRESENT(FUNKNO)) THEN
-      NUM1=0
-      DO K=1,NREG
-        IBM=MATCOD(K)
-        IF(IBM.LE.0) CYCLE
-        SUNKNO(IDL(K))=SUNKNO(IDL(K))+FUNKNO(IDL(K))*VOL(K)*SIGG(IBM)
-      ENDDO
-    ELSE
-      ! Assume a flat flux
-      NUM1=0
-      DO K=1,NREG
-        IBM=MATCOD(K)
-        IF(IBM.LE.0) CYCLE
-        SUNKNO(IDL(K))=SUNKNO(IDL(K))+VOL(K)*SIGG(IBM)
-      ENDDO
-    ENDIF
+    NUM1=0
+    DO K=1,NREG
+      IBM=MATCOD(K)
+      IF(IBM.LE.0) CYCLE
+      SUNKNO(IDL(K))=SUNKNO(IDL(K))+FUNKNO(IDL(K))*VOL(K)*SIGG(IBM)
+    ENDDO
     DEALLOCATE(IDL,KN,DD,XX)
     DEALLOCATE(TS,T,RS,R)
     RETURN
-  END SUBROUTINE DOORS_BIVFSO
+  END SUBROUTINE BIV2FSO2
   !
-  SUBROUTINE DOORS_BIVGSO(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
+  SUBROUTINE BIV2GSO2(IPTRK,NANIS,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
     !
     !-----------------------------------------------------------------------
     !
@@ -236,8 +202,7 @@ CONTAINS
     !----
     TYPE(C_PTR) IPTRK
     INTEGER NANIS,NREG,NMAT,NUN,MATCOD(NREG)
-    REAL VOL(NREG),SIGG(0:NMAT,NANIS+1),SUNKNO(NUN)
-    REAL, OPTIONAL :: FUNKNO(NUN)
+    REAL VOL(NREG),SIGG(0:NMAT,NANIS+1),SUNKNO(NUN),FUNKNO(NUN)
     !----
     !  LOCAL VARIABLES
     !----
@@ -262,7 +227,7 @@ CONTAINS
     ISPN=JPAR(15)
     ISCAT=JPAR(16)
     LHEX=(ITYPE.EQ.8)
-    IF((IELEM.LT.0).OR.(ICOL.GT.3)) CALL XABORT('DOORS_BIVGSO: RAVIA' &
+    IF((IELEM.LT.0).OR.(ICOL.GT.3)) CALL XABORT('BIV2GSO: RAVIA' &
     & //'RT-THOMAS METHOD EXPECTED.')
     CALL LCMLEN(IPTRK,'KN',MAXKN,ITYLCM)
     ALLOCATE(KN(MAXKN))
@@ -293,7 +258,7 @@ CONTAINS
       !----
       !  CARTESIAN 2D DUAL (RAVIART-THOMAS) CASE.
       !----
-      IF(PRESENT(FUNKNO).AND.(.NOT.LHEX)) THEN
+      IF(.NOT.LHEX) THEN
         NUM1=0
         DO IR=1,NREG
           IBM=MATCOD(IR)
@@ -305,7 +270,7 @@ CONTAINS
           ENDDO ! I0
           10 NUM1=NUM1+5
         ENDDO ! IR
-      ELSE IF(PRESENT(FUNKNO).AND.LHEX) THEN
+      ELSE IF(LHEX) THEN
         TTTT=0.5*SQRT(3.0)*SIDE*SIDE
         NUM1=0
         DO KEL=1,NBLOS
@@ -325,33 +290,6 @@ CONTAINS
             ENDDO ! K1
           ENDDO ! K2
         ENDDO ! KEL
-      ELSE IF((.NOT.PRESENT(FUNKNO)).AND.(.NOT.LHEX)) THEN
-        ! a flat flux is assumed
-        NUM1=0
-        DO IR=1,NREG
-          IBM=MATCOD(IR)
-          IF(IBM.LE.0) CYCLE
-          IF(VOL(IR).EQ.0.0) GO TO 20
-          IND=KN(NUM1+1)
-          SUNKNO(IND)=SUNKNO(IND)+VOL(IR)*SIGG(IBM,1)
-          20 NUM1=NUM1+5
-        ENDDO ! IR
-      ELSE IF((.NOT.PRESENT(FUNKNO)).AND.LHEX) THEN
-        ! a flat flux is assumed
-        TTTT=0.5*SQRT(3.0)*SIDE*SIDE
-        NUM1=0
-        DO KEL=1,NBLOS
-          IF(IPERT(KEL).EQ.0) CYCLE
-          NUM1=NUM1+1
-          IBM=MATCOD((IPERT(KEL)*3-1)+1)
-          IF(IBM.LE.0) CYCLE
-          JND1=KN(NUM1)
-          JND2=KN(NBLOS+NUM1)
-          JND3=KN(2*NBLOS+NUM1)
-          SUNKNO(JND1)=SUNKNO(JND1)+TTTT*SIGG(IBM,1)
-          SUNKNO(JND2)=SUNKNO(JND2)+TTTT*SIGG(IBM,1)
-          SUNKNO(JND3)=SUNKNO(JND3)+TTTT*SIGG(IBM,1)
-        ENDDO ! KEL
       ENDIF
     ELSE
       !----
@@ -359,103 +297,59 @@ CONTAINS
       !----
       DO IL=0,MIN(ABS(ISCAT)-1,NANIS)
         FACT=REAL(2*IL+1)
-        IF(PRESENT(FUNKNO)) THEN
-          NUM1=0
-          DO IR=1,NREG
-            IBM=MATCOD(IR)
-            IF(IBM.LE.0) CYCLE
-            IF(VOL(IR).EQ.0.0) GO TO 70
-            IF(MOD(IL,2).EQ.0) THEN
-              DO I0=1,IELEM*IELEM
-                IND=(IL/2)*L4+KN(NUM1+1)+I0-1
-                SUNKNO(IND)=SUNKNO(IND)+FACT*FUNKNO(IND)*VOL(IR)*SIGG(IBM,IL+1)
-              ENDDO ! I0
-            ELSE
-              DO I0=1,IELEM
-                DO 40 IC=1,2
+        NUM1=0
+        DO IR=1,NREG
+          IBM=MATCOD(IR)
+          IF(IBM.LE.0) CYCLE
+          IF(VOL(IR).EQ.0.0) GO TO 20
+          IF(MOD(IL,2).EQ.0) THEN
+            DO I0=1,IELEM*IELEM
+              IND=(IL/2)*L4+KN(NUM1+1)+I0-1
+              SUNKNO(IND)=SUNKNO(IND)+FACT*FUNKNO(IND)*VOL(IR)*SIGG(IBM,IL+1)
+            ENDDO ! I0
+          ELSE
+            DO I0=1,IELEM
+              DO IC=1,2
                 IIC=1+(IC-1)*IELEM
                 IND1=(IL/2)*L4+ABS(KN(NUM1+1+IC))+I0-1
                 S1=REAL(SIGN(1,KN(NUM1+1+IC)))
-                DO 30 JC=1,2
-                JJC=1+(JC-1)*IELEM
-                IND2=(IL/2)*L4+ABS(KN(NUM1+1+JC))+I0-1
-                IF((KN(NUM1+1+IC).NE.0).AND.(KN(NUM1+1+JC).NE.0)) THEN
-                  S2=REAL(SIGN(1,KN(NUM1+1+JC)))
-                  AUXX=S1*S2*FACT*RR(IIC,JJC)*VOL(IR)
-                  SUNKNO(IND1)=SUNKNO(IND1)-AUXX*FUNKNO(IND2)*SIGG(IBM,IL+1)
-                ENDIF
-   30           CONTINUE
-   40           CONTINUE
-                DO 60 IC=3,4
+                DO JC=1,2
+                  JJC=1+(JC-1)*IELEM
+                  IND2=(IL/2)*L4+ABS(KN(NUM1+1+JC))+I0-1
+                  IF((KN(NUM1+1+IC).NE.0).AND.(KN(NUM1+1+JC).NE.0)) THEN
+                    S2=REAL(SIGN(1,KN(NUM1+1+JC)))
+                    AUXX=S1*S2*FACT*RR(IIC,JJC)*VOL(IR)
+                    SUNKNO(IND1)=SUNKNO(IND1)-AUXX*FUNKNO(IND2)*SIGG(IBM,IL+1)
+                  ENDIF
+                ENDDO ! JC
+              ENDDO ! IC
+              DO IC=3,4
                 IIC=1+(IC-3)*IELEM
                 IND1=(IL/2)*L4+ABS(KN(NUM1+1+IC))+I0-1
                 S1=REAL(SIGN(1,KN(NUM1+1+IC)))
-                DO 50 JC=3,4
-                JJC=1+(JC-3)*IELEM
-                IND2=(IL/2)*L4+ABS(KN(NUM1+1+JC))+I0-1
-                IF((KN(NUM1+1+IC).NE.0).AND.(KN(NUM1+1+JC).NE.0)) THEN
-                  S2=REAL(SIGN(1,KN(NUM1+1+JC)))
-                  AUXX=S1*S2*FACT*RR(IIC,JJC)*VOL(IR)
-                  SUNKNO(IND1)=SUNKNO(IND1)-AUXX*FUNKNO(IND2)*SIGG(IBM,IL+1)
-                ENDIF
-   50           CONTINUE
-   60           CONTINUE
-              ENDDO ! I0
-            ENDIF
-            70 NUM1=NUM1+5
-          ENDDO ! IR
-        ELSE
-          ! a flat flux is assumed
-          NUM1=0
-          DO IR=1,NREG
-            IBM=MATCOD(IR)
-            IF(IBM.LE.0) CYCLE
-            IF(VOL(IR).EQ.0.0) GO TO 120
-            IF(MOD(IL,2).EQ.0) THEN
-              IND=(IL/2)*L4+KN(NUM1+1)
-              SUNKNO(IND)=SUNKNO(IND)+FACT*VOL(IR)*SIGG(IBM,IL+1)
-            ELSE
-              DO 90 IC=1,2
-              IIC=1+(IC-1)*IELEM
-              IND1=(IL/2)*L4+ABS(KN(NUM1+1+IC))
-              S1=REAL(SIGN(1,KN(NUM1+1+IC)))
-              DO 80 JC=1,2
-              JJC=1+(JC-1)*IELEM
-              IND2=(IL/2)*L4+ABS(KN(NUM1+1+JC))
-              IF((KN(NUM1+1+IC).NE.0).AND.(KN(NUM1+1+JC).NE.0)) THEN
-                S2=REAL(SIGN(1,KN(NUM1+1+JC)))
-                AUXX=S1*S2*FACT*RR(IIC,JJC)*VOL(IR)
-                SUNKNO(IND1)=SUNKNO(IND1)-AUXX*SIGG(IBM,IL+1)
-              ENDIF
-   80       CONTINUE
-   90       CONTINUE
-              DO 110 IC=3,4
-              IIC=1+(IC-3)*IELEM
-              IND1=(IL/2)*L4+ABS(KN(NUM1+1+IC))
-              S1=REAL(SIGN(1,KN(NUM1+1+IC)))
-              DO 100 JC=3,4
-              JJC=1+(JC-3)*IELEM
-              IND2=(IL/2)*L4+ABS(KN(NUM1+1+JC))
-              IF((KN(NUM1+1+IC).NE.0).AND.(KN(NUM1+1+JC).NE.0)) THEN
-                S2=REAL(SIGN(1,KN(NUM1+1+JC)))
-                AUXX=S1*S2*FACT*RR(IIC,JJC)*VOL(IR)
-                SUNKNO(IND1)=SUNKNO(IND1)-AUXX*SIGG(IBM,IL+1)
-              ENDIF
-  100       CONTINUE
-  110       CONTINUE
-            ENDIF
-            120 NUM1=NUM1+5
-          ENDDO ! IR
-        ENDIF
+                DO JC=3,4
+                  JJC=1+(JC-3)*IELEM
+                  IND2=(IL/2)*L4+ABS(KN(NUM1+1+JC))+I0-1
+                  IF((KN(NUM1+1+IC).NE.0).AND.(KN(NUM1+1+JC).NE.0)) THEN
+                    S2=REAL(SIGN(1,KN(NUM1+1+JC)))
+                    AUXX=S1*S2*FACT*RR(IIC,JJC)*VOL(IR)
+                    SUNKNO(IND1)=SUNKNO(IND1)-AUXX*FUNKNO(IND2)*SIGG(IBM,IL+1)
+                  ENDIF
+                ENDDO ! JC
+              ENDDO ! IC
+            ENDDO ! I0
+          ENDIF
+          20 NUM1=NUM1+5
+        ENDDO ! IR
       ENDDO ! IL
     ENDIF
     IF(LHEX) DEALLOCATE(IPERT)
     IF(NLF.GT.0) DEALLOCATE(RR)
     DEALLOCATE(KN)
     RETURN
-  END SUBROUTINE DOORS_BIVGSO
+  END SUBROUTINE BIV2GSO2
   !
-  SUBROUTINE DOORS_BIVFSH(IPTRK,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
+  SUBROUTINE BIV2FSH(IPTRK,NREG,NMAT,NUN,MATCOD,VOL,SIGG,SUNKNO,FUNKNO)
     !
     !-----------------------------------------------------------------------
     !
@@ -471,8 +365,7 @@ CONTAINS
     !----
     TYPE(C_PTR) IPTRK
     INTEGER NREG,NMAT,NUN,MATCOD(NREG)
-    REAL VOL(NREG),SIGG(0:NMAT),SUNKNO(NUN)
-    REAL, OPTIONAL :: FUNKNO(NUN)
+    REAL VOL(NREG),SIGG(0:NMAT),SUNKNO(NUN),FUNKNO(NUN)
     !----
     !  LOCAL VARIABLES
     !----
@@ -507,8 +400,8 @@ CONTAINS
     ELSE
       NELEM=MAXKN/4
     ENDIF
-    IF(IELEM.GT.0) CALL XABORT('DOORS_BIVFSH: LAGRANGE METHOD EXPECTED.')
-    IF(NLF.GT.0) CALL XABORT('DOORS_BIVFSH: SPN NOT IMPLEMENTED.')
+    IF(IELEM.GT.0) CALL XABORT('BIV2FSH: LAGRANGE METHOD EXPECTED.')
+    IF(NLF.GT.0) CALL XABORT('BIV2FSH: SPN NOT IMPLEMENTED.')
     CALL LCMSIX(IPTRK,'BIVCOL',1)
     CALL LCMGET(IPTRK,'RH',RH)
     CALL LCMGET(IPTRK,'RT',RT)
@@ -567,60 +460,34 @@ CONTAINS
     !----
     !  COMPUTE THE SOURCE
     !----
-    IF(PRESENT(FUNKNO)) THEN
-      NUM1=0
-      DO K=1,NELEM
-        KHEX=KN(NUM1+LH+1)
-        IF(VOL(KHEX).EQ.0.0) GO TO 10
-        IBM=MATCOD(KHEX)
-        VOL0=QFR(NUM1+LH+1)
-        GARS=SIGG(IBM)
-        DO I=1,LH
-          IND1=KN(NUM1+I)
-          IF(IND1.EQ.0) CYCLE
-          DO J=1,LH
-            IND2=KN(NUM1+J)
-            IF(IND2.EQ.0) CYCLE
-            SUNKNO(IND1)=SUNKNO(IND1)+RH2(I,J)*FUNKNO(IND2)*VOL0*GARS
-          ENDDO ! J
-        ENDDO ! I
-        10 NUM1=NUM1+LH+1
-      ENDDO ! K
-    ELSE
-      ! Assume a flat flux
-      NUM1=0
-      DO K=1,NELEM
-        KHEX=KN(NUM1+LH+1)
-        IF(VOL(KHEX).EQ.0.0) GO TO 20
-        IBM=MATCOD(KHEX)
-        VOL0=QFR(NUM1+LH+1)
-        DO I=1,LH
-          IND1=KN(NUM1+I)
-          IF(IND1.NE.0) SUNKNO(IND1)=SUNKNO(IND1)+TH(I)*VOL0*SIGG(IBM)
-        ENDDO ! I
-        20 NUM1=NUM1+LH+1
-      ENDDO ! K
-    ENDIF
+    NUM1=0
+    DO K=1,NELEM
+      KHEX=KN(NUM1+LH+1)
+      IF(VOL(KHEX).EQ.0.0) GO TO 10
+      IBM=MATCOD(KHEX)
+      VOL0=QFR(NUM1+LH+1)
+      GARS=SIGG(IBM)
+      DO I=1,LH
+        IND1=KN(NUM1+I)
+        IF(IND1.EQ.0) CYCLE
+        DO J=1,LH
+          IND2=KN(NUM1+J)
+          IF(IND2.EQ.0) CYCLE
+          SUNKNO(IND1)=SUNKNO(IND1)+RH2(I,J)*FUNKNO(IND2)*VOL0*GARS
+        ENDDO ! J
+      ENDDO ! I
+      10 NUM1=NUM1+LH+1
+    ENDDO ! K
     !----
     !  APPEND THE INTEGRATED VOLUMIC SOURCES
     !----
-    IF(PRESENT(FUNKNO)) THEN
-      NUM1=0
-      DO K=1,NREG
-        IBM=MATCOD(K)
-        IF(IBM.LE.0) CYCLE
-        SUNKNO(IDL(K))=SUNKNO(IDL(K))+FUNKNO(IDL(K))*VOL(K)*SIGG(IBM)
-      ENDDO
-    ELSE
-      ! Assume a flat flux
-      NUM1=0
-      DO K=1,NREG
-        IBM=MATCOD(K)
-        IF(IBM.LE.0) CYCLE
-        SUNKNO(IDL(K))=SUNKNO(IDL(K))+VOL(K)*SIGG(IBM)
-      ENDDO
-    ENDIF
+    NUM1=0
+    DO K=1,NREG
+      IBM=MATCOD(K)
+      IF(IBM.LE.0) CYCLE
+      SUNKNO(IDL(K))=SUNKNO(IDL(K))+FUNKNO(IDL(K))*VOL(K)*SIGG(IBM)
+    ENDDO
     DEALLOCATE(IDL,QFR,KN)
     RETURN
-  END SUBROUTINE DOORS_BIVFSH
-END SUBROUTINE DOORS_BIV
+  END SUBROUTINE BIV2FSH
+END SUBROUTINE DOORS_BIV2
