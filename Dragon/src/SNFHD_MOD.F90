@@ -7,7 +7,7 @@
 !
 ! Copyright:
 !  Copyright (C) 2025 Ecole Polytechnique de Montreal
-!  This library is free software; you can redistribute it and/or
+!  This library ifs free software; you can redistribute it and/or
 !  modify it under the terms of the GNU Lesser General Public
 !  License as published by the Free Software Foundation; either
 !  version 2.1 of the License, or (at your option) any later version
@@ -536,8 +536,8 @@ CONTAINS
             ENDDO
         ENDIF
 
-        !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ITID,IG,IPQD,ICEL,I,J,K_MC,IHEX_XY,DCOORD,IOF,M,IDI,NMAX,NCEL,J_MC,JIM,I_MC,IIM)
-        !$OMP1 PRIVATE(I_END,I_STT,J_STT,J_END,III,JJJ,KKK)
+        !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(ITID,IG,IPQD,ICEL,I,J,K_MC,IHEX_XY,DCOORD,IOF,M,IDI,NMAX,NCEL,J_MC,JIM,I_MC,IIM) &
+        !$OMP PRIVATE(I_END,I_STT,J_STT,J_END,III,JJJ,KKK)
         ! LOOP OVER WAVEFRONTS 
         DO IDI=1,NCOL+NCOL+MACROZ-2
 
