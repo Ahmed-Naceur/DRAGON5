@@ -161,7 +161,7 @@ else
       ifeq ($(OS),Darwin)
         LFLAGS += -lclang_rt.osx
         ifeq ($(openmp),1)
-          LFLAGS += -L/opt/homebrew/opt/libomp/lib -L/usr/local/opt/libomp/lib -lomp
+          LFLAGS += -lomp
         endif
       endif
     else
@@ -182,25 +182,17 @@ ifeq ($(hdf5),1)
   LFLAGS += -L${HDF5_API} -lhdf5
 endif
 
-FFLAGS += -cpp
-
 SRCC = $(shell ls *.c 2>/dev/null)
-SRC77 = $(filter-out %.pp.f,$(shell ls *.f 2>/dev/null))
+SRC77 = $(shell ls *.f 2>/dev/null)
 SRCF77 = $(shell ls *.F 2>/dev/null)
-ifeq ($(PY),)
-  $(warning No Python interpreter found; Fortran dependency ordering may be suboptimal)
-  SRC90_RAW = $(shell ls *.f90 *.F90 2>/dev/null)
-  SRC90 = $(filter-out %.pp.f90,$(SRC90_RAW))
-else
-  SRC90_RAW = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90)
-  SRC90 = $(filter-out %.pp.f90,$(SRC90_RAW))
-endif
+SRC90 = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90 2>/dev/null)
 OBJC = $(SRCC:.c=.o)
 OBJ90 = $(patsubst %.f90,%.o,$(patsubst %.F90,%.o,$(SRC90)))
 OBJ77 = $(SRC77:.f=.o)
 OBJF77 = $(SRCF77:.F=.o)
 
-# Auto-generated dependency file capturing Fortran module and include deps
+ifneq ($(filter Darwin Linux,$(OS)),)
+SUBMAKE_DEPS := | sub-make
 DEPS_MK := .dragon_deps.mk
 -include $(DEPS_MK)
 $(DEPS_MK): $(SRC90) $(SRC77) $(SRCF77)
@@ -209,6 +201,13 @@ ifeq ($(PY),)
 else
 	@echo "# Generating Fortran dependencies into $(DEPS_MK)"; \
 	$(PY) ../../script/make_depend.py --make-deps $(SRC90) $(SRC77) $(SRCF77) > $(DEPS_MK) || { rm -f $(DEPS_MK); exit 1; }
+endif
+else
+SUBMAKE_DEPS :=
+ifneq ($(findstring -j,$(MAKEFLAGS)),)
+	.NOTPARALLEL:
+	$(info Parallel build is not supported on $(OS). Forcing sequential build.)
+endif
 endif
 
 all : sub-make Dragon
@@ -231,26 +230,35 @@ sub-make:
 	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Utilib/src
 	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Ganlib/src
 	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Trivac/src
-%.o : %.c | sub-make
-	$(C) $(CFLAGS) $(opt) $(COMP) -c $< -o $@
-%.o : %.f90 | sub-make
+%.o : %.c $(SUBMAKE_DEPS)
+	$(C) $(CFLAGS) $(FLAGS) $(opt) $(COMP) -c $< -o $@
+%.o : %.f90 $(SUBMAKE_DEPS)
 	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
-%.o : %.F90 | sub-make
-	# Use Fortran compiler's integrated preprocessor instead of cpp -traditional
-	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) $(FLAGS) -c $< -o $@
-%.o : %.f | sub-make
+%.o : %.F90 $(SUBMAKE_DEPS)
+	$(PREPRO) -P -W -traditional $(FLAGS) $< $(@:.o=.pp.f90)
+	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) -c $(@:.o=.pp.f90) -o $@
+	/bin/rm -f $(@:.o=.pp.f90)
+%.o : %.f $(SUBMAKE_DEPS)
 	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
-%.o : %.F | sub-make
-	# Use Fortran compiler's integrated preprocessor only for .F (not for .f)
-	$(F90) $(FFLAG77) -cpp $(opt) $(COMP) $(INCLUDE) $(FLAGS) -c $< -o $@
+%.o : %.F $(SUBMAKE_DEPS)
+	$(PREPRO) -P -W -traditional $(FLAGS) $(FMPI) $< $(@:.o=.pp.f)
+	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c $(@:.o=.pp.f) -o $@
+	/bin/rm -f $(@:.o=.pp.f)
 $(lib_module)/:
 	mkdir -p $(lib_module)/
 $(lib)/: $(lib_module)/
 	mkdir -p $(lib)/
+ifneq ($(filter Darwin Linux,$(OS)),)
 libDragon.a: $(DEPS_MK) $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib)/
 	ar rcs $@ $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77)
 	cp $@ $(lib)/$@
 	if ls *.mod 1> /dev/null 2>&1; then cp *.mod $(lib_module); fi
+else
+libDragon.a: $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib)/
+	ar r $@ $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77)
+	cp $@ $(lib)/$@
+	if ls *.mod 1> /dev/null 2>&1; then cp *.mod $(lib_module); fi
+endif
 $(bin)/:
 	mkdir -p $(bin)/
 Dragon: libDragon.a DRAGON.o $(bin)/ sub-make
@@ -259,4 +267,4 @@ Dragon: libDragon.a DRAGON.o $(bin)/ sub-make
 	cp $@ $(bin)/$@
 clean:
 	$(MAKE) -C ../../Trivac/src clean
-	/bin/rm -f *.o *.mod *.a sub-make temp.* Dragon $(DEPS_MK) *.pp.f *.pp.f90
+	/bin/rm -f *.o *.mod *.a sub-make temp.* Dragon $(DEPS_MK) *.pp.f *.pp.f90 ._*

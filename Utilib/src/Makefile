@@ -131,7 +131,7 @@ else
       ifeq ($(OS),Darwin)
         LFLAGS += -lclang_rt.osx
         ifeq ($(openmp),1)
-          LFLAGS += -L/opt/homebrew/opt/libomp/lib -L/usr/local/opt/libomp/lib -lomp
+          LFLAGS += -lomp
         endif
       endif
     else
@@ -143,17 +143,15 @@ endif
 
 SRCC = $(shell ls *.c 2>/dev/null)
 SRC77 = $(shell ls *.f 2>/dev/null)
-ifeq ($(PY),)
-  $(warning No Python interpreter found; Fortran dependency ordering may be suboptimal)
-  SRC90 = $(shell ls *.f90 2>/dev/null)
-else
-  SRC90 = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90)
-endif
+SRCF77 = $(shell ls *.F 2>/dev/null)
+SRC90 = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90 2>/dev/null)
 OBJC = $(SRCC:.c=.o)
 OBJ90 = $(patsubst %.f90,%.o,$(patsubst %.F90,%.o,$(SRC90)))
 OBJ77 = $(SRC77:.f=.o)
+OBJF77 = $(SRCF77:.F=.o)
 
- # Auto-generated dependency file capturing Fortran module and include deps
+ifneq ($(filter Darwin Linux,$(OS)),)
+# Auto-generated dependency file capturing Fortran module and include deps
 DEPS_MK := .utilib_deps.mk
 -include $(DEPS_MK)
 $(DEPS_MK): $(SRC90) $(SRC77) $(SRCF77)
@@ -162,6 +160,12 @@ ifeq ($(PY),)
 else
 	@echo "# Generating Fortran dependencies into $(DEPS_MK)"; \
 	$(PY) ../../script/make_depend.py --make-deps $(SRC90) $(SRC77) $(SRCF77) > $(DEPS_MK) || { rm -f $(DEPS_MK); exit 1; }
+endif
+else
+  ifneq ($(findstring -j,$(MAKEFLAGS)),)
+    .NOTPARALLEL:
+    $(info Parallel build is not supported on $(OS). Forcing sequential build.)
+  endif
 endif
 
 all : libUtilib.a
@@ -179,20 +183,35 @@ ifeq ($(llvm),1)
 	@echo 'Utilib: llvm is defined'
 endif
 	@echo "Utilib: python=" $(PY)
-%.o : %.c
-	$(C) $(CFLAGS) $(opt) $(COMP) -c $< -o $@
-%.o : %.f90
+%.o : %.c 
+	$(C) $(CFLAGS) $(FLAGS) $(opt) $(COMP) -c $< -o $@
+%.o : %.f90 
 	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
-%.o : %.f
-	$(F90) $(FFLAG77) $(opt) $(COMP) -c $< -o $@
+%.o : %.F90 
+	$(PREPRO) -P -W -traditional $(FLAGS) $< $(@:.o=.pp.f90)
+	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) -c $(@:.o=.pp.f90) -o $@
+	/bin/rm -f $(@:.o=.pp.f90)
+%.o : %.f 
+	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
+%.o : %.F 
+	$(PREPRO) -P -W -traditional $(FLAGS) $(FMPI) $< $(@:.o=.pp.f)
+	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c $(@:.o=.pp.f) -o $@
+	/bin/rm -f $(@:.o=.pp.f)
 all: $(lib_module)
 $(lib_module)/:
 	mkdir -p $(lib_module)/
 $(lib)/: $(lib_module)/
 	mkdir -p $(lib)/
-libUtilib.a: $(OBJC) $(OBJ90) $(OBJ77) $(lib)/
-	ar rcs $@ $(OBJC) $(OBJ90) $(OBJ77)
+ifneq ($(filter Darwin Linux,$(OS)),)
+libUtilib.a: $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib)/
+	ar rcs $@ $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77)
 	cp $@ $(lib)/$@
 	cp *.mod $(lib_module)
+else
+libUtilib.a: $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib)/
+	ar r $@ $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77)
+	cp $@ $(lib)/$@
+	cp *.mod $(lib_module)
+endif
 clean:
-	/bin/rm -f *.o *.mod *.a $(DEPS_MK)
+	/bin/rm -f *.o *.mod *.a $(DEPS_MK) *.pp.f *.pp.f90 ._*

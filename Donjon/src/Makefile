@@ -165,7 +165,7 @@ else
       ifeq ($(OS),Darwin)
         LFLAGS += -lclang_rt.osx
         ifeq ($(openmp),1)
-          LFLAGS += -L/opt/homebrew/opt/libomp/lib -L/usr/local/opt/libomp/lib -lomp
+          LFLAGS += -lomp
         endif
       endif
     else
@@ -190,19 +190,14 @@ endif
 SRCC = $(shell ls *.c 2>/dev/null)
 SRC77 = $(shell ls *.f 2>/dev/null)
 SRCF77 = $(shell ls *.F 2>/dev/null)
-ifeq ($(PY),)
-  $(warning No Python interpreter found; Fortran dependency ordering may be suboptimal)
-  SRC90 = $(shell ls *.f90 2>/dev/null)
-else
-  SRC90 = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90)
-  
-endif
+SRC90 = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90 2>/dev/null)
 OBJC = $(SRCC:.c=.o)
 OBJ90 = $(patsubst %.f90,%.o,$(patsubst %.F90,%.o,$(SRC90)))
 OBJ77 = $(SRC77:.f=.o)
 OBJF77 = $(SRCF77:.F=.o)
 
-# Auto-generated dependency file capturing Fortran module and include deps
+ifneq ($(filter Darwin Linux,$(OS)),)
+SUBMAKE_DEPS := | sub-make
 DEPS_MK := .donjon_deps.mk
 -include $(DEPS_MK)
 $(DEPS_MK): $(SRC90) $(SRC77) $(SRCF77)
@@ -211,6 +206,13 @@ ifeq ($(PY),)
 else
 	@echo "# Generating Fortran dependencies into $(DEPS_MK)"; \
 	$(PY) ../../script/make_depend.py --make-deps $(SRC90) $(SRC77) $(SRCF77) > $(DEPS_MK) || { rm -f $(DEPS_MK); exit 1; }
+endif
+else
+SUBMAKE_DEPS :=
+ifneq ($(findstring -j,$(MAKEFLAGS)),)
+	.NOTPARALLEL:
+	$(info Parallel build is not supported on $(OS). Forcing sequential build.)
+endif
 endif
 
 all : sub-make Donjon
@@ -231,25 +233,35 @@ ifeq ($(hdf5),1)
 endif
 sub-make:
 	$(MAKE) openmp=$(openmp) intel=$(intel) nvidia=$(nvidia) llvm=$(llvm) hdf5=$(hdf5) -C ../../Dragon/src
-%.o : %.c
+%.o : %.c $(SUBMAKE_DEPS)
 	$(C) $(CFLAGS) $(opt) $(COMP) -c $< -o $@
-%.o : %.f90
+%.o : %.f90 $(SUBMAKE_DEPS)
 	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
-%.o : %.f
-	@/bin/rm -f temp.f
+%.o : %.F90 $(SUBMAKE_DEPS)
+	$(PREPRO) -P -W -traditional $(FLAGS) $< $(@:.o=.pp.f90)
+	$(F90) $(FFLAGS) $(opt) $(COMP) $(INCLUDE) -c $(@:.o=.pp.f90) -o $@
+	/bin/rm -f $(@:.o=.pp.f90)
+%.o : %.f $(SUBMAKE_DEPS)
 	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c $< -o $@
-%.o : %.F
-	$(PREPRO) -P -W -traditional  $(FLAGS) $< temp.f
-	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c temp.f -o $@
-	/bin/rm temp.f
+%.o : %.F $(SUBMAKE_DEPS)
+	$(PREPRO) -P -W -traditional $(FLAGS) $(FMPI) $< $(@:.o=.pp.f)
+	$(F90) $(FFLAG77) $(opt) $(COMP) $(INCLUDE) -c $(@:.o=.pp.f) -o $@
+	/bin/rm -f $(@:.o=.pp.f)
 $(lib_module)/:
 	mkdir -p $(lib_module)/
 $(lib)/: $(lib_module)/
 	mkdir -p $(lib)/
-libDonjon.a: $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib)/
+ifneq ($(filter Darwin Linux,$(OS)),)
+libDonjon.a: $(DEPS_MK) $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib)/
 	ar rcs $@ $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77)
 	cp $@ $(lib)/$@
-	cp *.mod $(lib_module)
+	if ls *.mod 1> /dev/null 2>&1; then cp *.mod $(lib_module); fi
+else
+libDonjon.a: $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib)/
+	ar r $@ $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77)
+	cp $@ $(lib)/$@
+	if ls *.mod 1> /dev/null 2>&1; then cp *.mod $(lib_module); fi
+endif
 $(bin)/:
 	mkdir -p $(bin)/
 Donjon: libDonjon.a DONJON.o $(bin)/ sub-make
@@ -258,4 +270,4 @@ Donjon: libDonjon.a DONJON.o $(bin)/ sub-make
 	cp $@ $(bin)/$@
 clean:
 	$(MAKE) -C ../../Dragon/src clean
-	/bin/rm -f *.o *.mod *.a sub-make temp.* Donjon $(DEPS_MK)
+	/bin/rm -f *.o *.mod *.a sub-make temp.* Donjon $(DEPS_MK) *.pp.f *.pp.f90 ._*

@@ -155,7 +155,7 @@ else
       ifeq ($(OS),Darwin)
         LFLAGS += -lclang_rt.osx
         ifeq ($(openmp),1)
-          LFLAGS += -L/opt/homebrew/opt/libomp/lib -L/usr/local/opt/libomp/lib -lomp
+          LFLAGS += -lomp
         endif
       endif
     else
@@ -175,21 +175,13 @@ endif
 SRCC = $(shell ls *.c 2>/dev/null)
 SRC77 = $(shell ls *.f 2>/dev/null)
 SRCF77 = $(shell ls *.F 2>/dev/null)
-ifeq ($(PY),)
-  $(warning No Python interpreter found; Fortran dependency ordering may be suboptimal)
-  SRC90 = $(shell ls *.f90 2>/dev/null)
-  SRCF90 = $(shell ls *.F90 2>/dev/null)
-else
-  SRC90 = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90)
-  SRCF90 =
-endif
+SRC90 = $(shell $(PY) ../../script/make_depend.py *.f90 *.F90 2>/dev/null)
 OBJC = $(SRCC:.c=.o)
 OBJ90 = $(patsubst %.f90,%.o,$(patsubst %.F90,%.o,$(SRC90)))
-OBJF90 = $(SRCF90:.F90=.o)
 OBJ77 = $(SRC77:.f=.o)
 OBJF77 = $(SRCF77:.F=.o)
 
-# Auto-generated dependency file capturing Fortran module and include deps
+ifneq ($(filter Darwin Linux,$(OS)),)
 DEPS_MK := .ganlib_deps.mk
 -include $(DEPS_MK)
 $(DEPS_MK): $(SRC90) $(SRC77) $(SRCF77)
@@ -198,6 +190,12 @@ ifeq ($(PY),)
 else
 	@echo "# Generating Fortran dependencies into $(DEPS_MK)"; \
 	$(PY) ../../script/make_depend.py --make-deps $(SRC90) $(SRC77) $(SRCF77) > $(DEPS_MK) || { rm -f $(DEPS_MK); exit 1; }
+endif
+else
+  ifneq ($(findstring -j,$(MAKEFLAGS)),)
+    .NOTPARALLEL:
+    $(info Parallel build is not supported on $(OS). Forcing sequential build.)
+  endif
 endif
 
 all : sub-make Ganlib
@@ -237,14 +235,21 @@ sub-make:
 	/bin/rm -f $(@:.o=.pp.f)
 $(lib_module)/:
 	mkdir -p $(lib_module)/
-libGanlib.a: $(DEPS_MK) $(OBJC) $(OBJ90) $(OBJF90) $(OBJ77) $(OBJF77) $(lib_module)/
-	ar rcs $@ $(OBJC) $(OBJ90) $(OBJF90) $(OBJ77) $(OBJF77)
+ifneq ($(filter Darwin Linux,$(OS)),)
+libGanlib.a: $(DEPS_MK) $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib_module)/
+	ar rcs $@ $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77)
 	cp $@ $(lib)/$@
-	cp *.mod $(lib_module)
+	if ls *.mod 1> /dev/null 2>&1; then cp *.mod $(lib_module); fi
+else
+libGanlib.a: $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77) $(lib_module)/
+	ar r $@ $(OBJC) $(OBJ90) $(OBJ77) $(OBJF77)
+	cp $@ $(lib)/$@
+	if ls *.mod 1> /dev/null 2>&1; then cp *.mod $(lib_module); fi
+endif
 $(bin)/:
 	mkdir -p $(bin)/
 Ganlib: libGanlib.a GANMAIN.o $(bin)/
 	$(F90) $(opt) $(COMP) GANMAIN.o $(lib)/libGanlib.a $(LFLAGS) -o Ganlib
 	cp $@ $(bin)/$@
 clean:
-	/bin/rm -f *.o *.mod *.a sub-make temp.* Ganlib* $(DEPS_MK) *.pp.f *.pp.f90
+	/bin/rm -f *.o *.mod *.a sub-make temp.* Ganlib* $(DEPS_MK) *.pp.f *.pp.f90 ._*
