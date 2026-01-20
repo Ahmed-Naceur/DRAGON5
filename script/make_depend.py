@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Generate Fortran dependencies from sources (*.f90, *.F90).
 
@@ -7,16 +8,17 @@ Usage:
     - --make-deps: prints Makefile-style dependency rules.
 """
 
-from __future__ import print_function
 import sys
 import os
-import io
 import re
 import glob
 
 def strip_comment(line):
     idx = line.find('!')
-    return line if idx == -1 else line[:idx]
+    if idx == -1:
+        return line
+    else:
+        return line[:idx]
 
 class FortranUnit(object):
     USE_RE = re.compile(r"^\s*use\s+([a-z0-9_]+)", re.IGNORECASE)
@@ -38,9 +40,13 @@ class FortranUnit(object):
     def _parse(self):
         in_module = False
         in_contains = False
+        lines = []
         try:
-            with io.open(self.name, 'r') as f:
+            f = open(self.name, 'r')
+            try:
                 lines = f.readlines()
+            finally:
+                f.close()
         except IOError:
             return
         for raw in lines:
@@ -75,8 +81,18 @@ class FortranUnit(object):
                     self.includes_in_contains.append(os.path.basename(inc))
 
 def build_units(paths):
-    exts = (".f90", ".F90", ".f", ".F")
-    return [FortranUnit(p) for p in paths if p.lower().endswith(exts)]
+    exts = [".f90", ".F90", ".f", ".F"]
+    units = []
+    for p in paths:
+        base = os.path.basename(p)
+        if base.startswith("."):
+            continue
+        low = p.lower()
+        for ext in exts:
+            if low.endswith(ext):
+                units.append(FortranUnit(p))
+                break
+    return units
 
 def build_dependency_order(paths):
     units = build_units(paths)
@@ -130,7 +146,12 @@ def build_dependency_order(paths):
 
     remaining = [u for u in units if u not in ordered]
     if remaining:
-        remaining.sort(key=lambda x: (0 if not x.module else 1, x.base_lc))
+        def sort_key(x):
+            if not x.module:
+                return (0, x.base_lc)
+            else:
+                return (1, x.base_lc)
+        remaining.sort(key=sort_key)
         ordered.extend(remaining)
 
     excluded_bases = set()
@@ -183,9 +204,12 @@ def generate_make_deps(paths):
         if deps_objs or deps_files:
             target = make_obj_name(u.name)
             deps = sorted(deps_objs) + sorted(deps_files)
-            lines.append("{}: {}".format(target, ' '.join(deps)))
+            lines.append("%s: %s" % (target, ' '.join(deps)))
 
-    return "\n".join(lines) + ("\n" if lines else "")
+    result = "\n".join(lines)
+    if lines:
+        result += "\n"
+    return result
 
 def main():
     argv = sys.argv[1:]
@@ -194,16 +218,48 @@ def main():
         return
 
     make_deps = False
-    if "--make-deps" in argv:
-        make_deps = True
-        argv = [a for a in argv if a != "--make-deps"]
+    cleaned_argv = []
+    for a in argv:
+        if a == "--make-deps":
+            make_deps = True
+        else:
+            cleaned_argv.append(a)
 
     paths = []
-    for a in argv:
-        if any(ch in a for ch in ['*', '?', '[']):
-            paths.extend(glob.glob(a))
-        else:
-            paths.append(a)
+
+    def has_glob_chars(s):
+        # Python 2.4 compatible: no any(), no generator expressions.
+        return (s.find('*') != -1) or (s.find('?') != -1) or (s.find('[') != -1)
+
+    def accept_path(p):
+        lowp = p.lower()
+        if make_deps:
+            return lowp.endswith('.f90') or lowp.endswith('.F90') or lowp.endswith('.f') or lowp.endswith('.F')
+        return lowp.endswith('.f90')
+
+    if cleaned_argv:
+        for a in cleaned_argv:
+            if has_glob_chars(a):
+                for m in glob.glob(a):
+                    if accept_path(m):
+                        paths.append(m)
+            else:
+                if accept_path(a):
+                    paths.append(a)
+    if not paths:
+        try:
+            cwd = os.getcwd()
+            candidates = os.listdir('.')
+        except OSError:
+            candidates = []
+        for name in candidates:
+            if accept_path(name):
+                paths.append(name)
+    if not paths:
+        try:
+            sys.stderr.write('[make_depend.py] Warning: no Fortran sources found in arguments or current directory.\n')
+        except:
+            pass
 
     seen = set()
     unique_paths = []
@@ -213,7 +269,8 @@ def main():
             unique_paths.append(p)
 
     if make_deps:
-        sys.stdout.write(generate_make_deps(unique_paths))
+        deps = generate_make_deps(unique_paths)
+        sys.stdout.write(deps)
     else:
         result = build_dependency_order(unique_paths)
         sys.stdout.write("%s\n" % (" ".join(result)))
