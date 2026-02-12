@@ -68,7 +68,7 @@ CONTAINS
          ANGGEO=TWOPI/NBFOLD
        ENDIF
        CASE(2)
-       ANGGEO=TWOPI/NBFOLD
+       ANGGEO=PI/NBFOLD
        CASE(5:6)
        ANGGEO=HALFPI
        CASE(7)
@@ -187,6 +187,7 @@ CONTAINS
       WRITE(*,*) "TYPGEO=",TYPGEO," NBFOLD=",NBFOLD
       CALL XABORT('SAL110: non supported type of symmetry')
     ENDIF
+    IF((PRTIND>0).AND.(HSYM.NE.' ')) WRITE(FOUT,'(18H SAL110: SYMMETRY=,A4,1H.)') HSYM
     ALLOCATE (GG%IPAR(NIPAR,GG%NB_ELEM), GG%RPAR(NRPAR,GG%NB_ELEM), STAT=OK)
     IF(OK/=0) CALL XABORT('SAL110: not enough memory I,R')
     !
@@ -2379,7 +2380,7 @@ CONTAINS
                    !                    for the axis 1:keep anggeo,cos(anggeo),sin(anggeo)
                    ANGLE=ANGGEO
                    IF(IDATA(1)==0) IDATA(1)=ITBC
-                ELSEIF(ABS(ANGLE+ANGGEO)<EPS) THEN
+                ELSEIF((ABS(ANGLE+ANGGEO)<EPS).OR.(ABS(ANGLE)<EPS)) THEN
                    !                    for the axis 2:keep -anggeo,cos(-anggeo),sin(-anggeo)
                    ANGLE=-ANGGEO
                    IF(IDATA(2)==0) IDATA(2)=ITBC
