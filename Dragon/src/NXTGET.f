@@ -52,6 +52,7 @@
 *               1 tracking available).
 *         ISTATU(26) is the MERGE flag (0 no merge; 1 MERGMIX).
 *         ISTATU(27) is the number of tracks assigned to a OpenMP core.
+*         ISTATU(30) is the number of perimeters.
 * RSTATU  real parameters for tracking:
 *         RSTATU( 1) is the track length cutoff for
 *               exponential functions;
