@@ -1,9 +1,9 @@
 *DECK MCGFCF
       SUBROUTINE MCGFCF(SUBFFI,SUBFFA,SUBLDC,SUBSCH,IFTRAK,NBTR,NMAX,
-     1                  NDIM,KPN,K,NREG,M,NGEFF,NANGL,NMU,NLF,NFUNL,
-     2                  NMOD,NLFX,NLIN,NFUNLX,KEYFLX,KEYCUR,NZON,NCONV,
-     3                  CAZ0,CAZ1,CAZ2,CPO,ZMU,WZMU,S,SIGAL,ISGNR,IDIR,
-     4                  NSOUT,NBATCH,XSI,PHI)
+     1                  NDIM,KPN,K,NREG,NBCDA,M,NGEFF,NANGL,NMU,NLF,
+     2                  NFUNL,NMOD,NLFX,NLIN,NFUNLX,KEYFLX,KEYCUR,NZON,
+     3                  NCONV,CAZ0,CAZ1,CAZ2,CPO,ZMU,WZMU,S,SIGAL,ISGNR,
+     4                  IDIR,NSOUT,NBATCH,XSI,PHI)
 *
 *-----------------------------------------------------------------------
 *
@@ -32,6 +32,7 @@
 * K       total number of volumes for which specific values
 *         of the neutron flux and reactions rates are required.
 * NREG    number of volumes.
+* NBCDA   number of perimeters.
 * M       number of material mixtures.
 * NGEFF   number of groups to process.
 * NANGL   number of tracking angles in the tracking file.
@@ -71,10 +72,10 @@
 *----
 *  SUBROUTINE ARGUMENTS
 *----
-      INTEGER NGEFF,K,KPN,M,NMAX,NDIM,NMU,NZON(K),NLF,NFUNL,NMOD,
-     1 NLFX,NLIN,NFUNLX,NREG,KEYFLX(NREG,NLIN,NFUNL),KEYCUR(K-NREG),
+      INTEGER NGEFF,KPN,K,NREG,NBCDA,M,NMAX,NDIM,NMU,NZON(K),NLF,NFUNL,
+     1 NMOD,NLFX,NLIN,NFUNLX,KEYFLX(NREG,NLIN,NFUNL),KEYCUR(K-NREG),
      2 IFTRAK,NBTR,NANGL,ISGNR(NMOD,NFUNLX),IDIR,NSOUT,NBATCH
-      REAL CPO(NMU),ZMU(NMU),WZMU(NMU),SIGAL(-6:M,NGEFF)
+      REAL CPO(NMU),ZMU(NMU),WZMU(NMU),SIGAL(-NBCDA:M,NGEFF)
       DOUBLE PRECISION CAZ0(NANGL),CAZ1(NANGL),CAZ2(NANGL),
      1 PHI(KPN,NGEFF),S(KPN,NGEFF),XSI(NSOUT)
       LOGICAL NCONV(NGEFF)

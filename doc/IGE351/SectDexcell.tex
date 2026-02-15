@@ -181,6 +181,9 @@ components if a flux-current iteration solution is used.
 \item $\mathcal{S}^{t}_{29}$ is the sum $\sum_{i=1}^{\mathcal{S}^{t}_{24}} N_i$ where $N_i$ is the number of perimeter elements after unfolding in macro
 geometry $i$.
 
+\item $\mathcal{S}^{t}_{30}$ is the number of perimeters surrounding the global geometry. For Cartesian 2D and 3D geometries, this value is generally equal to 4 and
+6, respectively. It can be higher for hexagonal geometries.
+
 \item $\mathcal{S}^{t}_{39}$ is the prismatic tracking activation flag along $z$ axis for 3D geometry (0/3: off/on-$z$ axis).
 
 \end{itemize}
@@ -193,13 +196,13 @@ The following records will also be present on the main level of a \dir{tracking}
   {EXCELTRACKOP}{$40$}{}
   {array ${\cal R}_i$ containing additional EXCELL or NXT tracking parameters.} 
 \IntEnr
-  {ICODE\blank{7}}{$6$}
-  {array ${\cal I}_{\beta,k}$ containing the surface albedo index (geometric surface albedo
+  {ICODE\blank{7}}{$\mathcal{S}^{t}_{30}$}
+  {array ${\cal I}_{\beta,k}$ containing the surface albedo index on each perimeter of the geometry (geometric surface albedo
   $\beta_{{\rm g},k}$ are used if ${\cal I}_{\beta,k}< 0$ while physical 
   surface albedo $\beta_{{\rm p},k}$ are used if ${\cal I}_{\beta,k}> 0$).} 
 \RealEnr
-  {ALBEDO\blank{6}}{$6$}{}
-  {array $\beta_{{\rm g},k}$ containing the geometric surface albedo (used only if ${\cal I}_{\beta,k}\ge 0$).}
+  {ALBEDO\blank{6}}{$\mathcal{S}^{t}_{30}$}{}
+  {array $\beta_{{\rm g},k}$ containing the geometric surface albedo on each perimeter of the geometry (used only if ${\cal I}_{\beta,k}\ge 0$).}
 \OptDirEnr
   {EXCELL\blank{6}}{$\mathcal{S}^{t}_{7}< 4$}
   {directory containing additional {\tt EXCELT:}  records for the cases where $\mathcal{S}^{t}_{7}=1$ or $\mathcal{S}^{t}_{7}=3$.}
@@ -210,6 +213,8 @@ The following records will also be present on the main level of a \dir{tracking}
   {PROJECTION\blank{2}}{$\mathcal{S}^{t}_{39}>0$}
   {directory containing the analysis of the projection of a 3D prismatic geometry.}
 \end{DescriptionEnregistrement}
+
+\goodbreak
 
 The record ${\cal R}_i$ contains the following information:
 \begin{itemize}
