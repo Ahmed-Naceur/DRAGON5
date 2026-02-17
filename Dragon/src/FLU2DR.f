@@ -207,6 +207,7 @@
       NFOU=0
       LX=0
       ITYPE=0
+      NBCDA=0
       IF(CXDOOR.EQ.'MCCG') THEN
          CALL LCMGET(IPTRK,'STATE-VECTOR',JPAR)
          NANIS_TRK=JPAR(6)
