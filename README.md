@@ -6,7 +6,7 @@ Version5 is a 64-bit clean distribution of the reactor physics codes developed a
 
 ## License
 
-The license is [GNU Lesser General Public License](http://www.gnu.org/licenses/lgpl.html).
+This software is distributed and copyrighted according to the [LICENSE](LICENSE) file.
 
 
 ## Documentation
