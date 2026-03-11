@@ -7,6 +7,7 @@ variables:
 
 stages:
   - build
+  - docs
   - test
   - deploy
 #  - release
@@ -215,3 +216,13 @@ docker_ubuntu24_slim:
   rules:
     - if: '$CI_COMMIT_TAG =~ /v+\d+\.\d+\.\d+/'
 
+Build Documentation:
+    stage: docs
+    image: docker.oecd-nea.org/dragon/5.1/docs
+    dependencies: []
+    script:
+        - cd doc
+        - for dir in */; do cd "$dir" && csh install && cd ..; done
+    artifacts:
+        paths:
+            - doc/*/*.pdf
