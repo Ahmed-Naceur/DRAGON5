@@ -33,12 +33,11 @@ if ( -f $nom_fich.idx ) then
 else
   dvips -f $nom_fich.dvi -o $nom_fich.ps
 endif
-/bin/rm header_tmp.* tmp.tex
-/bin/rm *.aux
+rm header_tmp.* tmp.tex
+rm *.aux
 echo "create pdf file" $nom_fich.pdf
 ps2pdf $nom_fich.ps
 echo "pdf file produced"
-open $nom_fich.pdf
-/bin/rm $nom_fich.dvi $nom_fich.ps $nom_fich.idx $nom_fich.log
-/bin/rm $nom_fich.toc $nom_fich.lot $nom_fich.lof $nom_fich.out
+rm $nom_fich.dvi $nom_fich.ps $nom_fich.idx $nom_fich.log
+rm $nom_fich.toc $nom_fich.lot $nom_fich.lof $nom_fich.out
 exit
