@@ -493,7 +493,7 @@ C       end IG
 !     adds up all fluxes
       if(LDEBUG)write(6,*)'NXP,NYP',NXP,NYP
       DO IG=1,NG
-      IF(.NOT.LNOINT) CALL LCMGDL(JPFLU,IG,FLXD)
+      IF(.NOT.LNOINT) CALL LCMGDL(MPFLU,IG,FLXD)
       DO K=1,NZASS
       DO IP=1,NXP
       DO JP=1,NYP

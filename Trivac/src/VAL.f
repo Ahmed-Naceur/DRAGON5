@@ -160,6 +160,20 @@
          NZD=MAX(1,NZD)
       ENDIF
 *----
+*  CHECK FOR 'FLUX' OR 'MODE'
+*----
+      CALL LCMLEN(IPFLU,'FLUX',LENGT,ITYLCM)
+      IF(LENGT.EQ.0) THEN
+         CALL LCMLEN(IPFLU,'MODE',LENGT,ITYLCM)
+         IF(LENGT.GT.0) THEN
+            JPFLU=LCMGID(IPFLU,'MODE')
+            IPFLU=LCMGIL(JPFLU,1)
+         ELSE
+            CALL LCMLIB(IPFLU)
+            CALL XABORT('VAL: UNABLE TO RECOVER A DIRECT FLUX.')
+         ENDIF
+      ENDIF
+*----
 *  READ INPUTS
 *----
       IMPX=0
@@ -172,10 +186,10 @@
       IF(INDIC.NE.3) CALL XABORT('VAL: character data expected.')
       IF(TEXT12.EQ.'EDIT') THEN
         CALL REDGET(INDIC,IMPX,FLOT,TEXT12,DFLOT)
-        IF(INDIC.NE.1) CALL XABORT('VAL: integer data expected.')
+        IF(INDIC.NE.1) CALL XABORT('VAL: integer data expected(1).')
       ELSE IF(TEXT12.EQ.'MODE') THEN
         CALL REDGET(INDIC,NITMA,FLOT,TEXT12,DFLOT)
-        IF(INDIC.NE.1) CALL XABORT('VAL: integer data expected.')
+        IF(INDIC.NE.1) CALL XABORT('VAL: integer data expected(2).')
         JPFLU=LCMGID(IPFLU,'MODE')
         IPFLU=LCMGIL(JPFLU,NITMA)
       ELSE IF(TEXT12.EQ.'DIM') THEN
