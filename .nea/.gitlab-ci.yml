@@ -76,15 +76,6 @@ default:
     expire_in: 1 day
     when: always
 
-build_ubuntu20:
-  extends: .build_linux_template
-  image: docker.oecd-nea.org/dragon/5.1/ubuntu:20.04
-  script:
-    - export HDF5_INC=/usr/include/hdf5/serial
-    - export HDF5_API=/usr/lib/x86_64-linux-gnu/hdf5/serial
-    - export FORTRANPATH=/usr/lib/gcc/x86_64-linux-gnu/9
-    - *BUILD_WITH_HDF5
-
 build_ubuntu22:
   extends: .build_linux_template
   image: docker.oecd-nea.org/dragon/5.1/ubuntu:22.04
