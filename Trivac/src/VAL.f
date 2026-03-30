@@ -63,15 +63,14 @@
       CHARACTER TEXT12*12,HSIGN*12,CMODUL*12
       INTEGER INDIC,NITMA
       DOUBLE PRECISION DFLOT,ZNORM,XDRCST,EVJ
-      REAL FLOT,SIDE
-      REAL DX,DY,DZ,POWER,DELMXD,DELMYD
+      REAL FLOT,SIDE,VNORM,DX,DY,DZ,POWER,DELMXD,DELMYD
       LOGICAL L2D,L3D
       INTEGER IGP(NSTATE),IFL(NSTATE),IFV(NSTATE),IMV(NSTATE),NXD,NYD,
      1 NZD,IELEM,NUN,IMPX,DIM,NG,NLF,NXI,NYI,NZI,NREG,ICHX,IDIM,ITYPE,
      2 L4,MAXKN,MKN,LC,ITYLCM,IREG,IGMAX,NMIX,NBFIS,IBM,IFISS,LENGT,
      3 LL4F,LL4X,LL4Y,ITRIAL,ICORN,LXH,ISPLH,NRING,NBLOS
       INTEGER I,IG,J,K
-      REAL E(25)
+      REAL E(25),SXYZ(3)
       TYPE(C_PTR) IPFVW,IPTRK,IPFLU,JPFLU,JPFVW,IPMAC,JPMAC,KPMAC
 *----
 *  ALLOCATABLE ARRAYS
@@ -102,8 +101,10 @@
         ELSEIF(HSIGN.EQ.'L_TRACK') THEN
            IPTRK=KENTRY(I)
            CALL LCMGTC(IPTRK,'TRACK-TYPE',12,CMODUL)
+           CALL LCMPTC(KENTRY(1),'LINK.TRACK',12,HENTRY(I))
         ELSEIF(HSIGN.EQ.'L_MACROLIB') THEN
            IPMAC=KENTRY(I)
+           CALL LCMPTC(KENTRY(1),'LINK.MACRO',12,HENTRY(I))
         ELSE
            TEXT12=HENTRY(I)
            CALL XABORT('VAL: SIGNATURE OF '//TEXT12//' IS '//HSIGN//
@@ -416,6 +417,7 @@
       ALLOCATE(MXI(NXI),MYI(NYI),MZI(NZI))
       ALLOCATE(MATXYZ(NXI*NYI*NZI),FXYZ(NXI*NYI*NZI,NG))
       IF(NXI.LE.1) CALL XABORT('VAL: UNABLE TO INTERPOLATE IN 1D.')
+      SXYZ(:3)=0.0
       DO I=1,NXI
         IF(ITYPE.LE.7) THEN
           MXI(I)=MXD(1)+DELMXD*REAL(I-1)/REAL(NXI-1)
@@ -423,6 +425,7 @@
           MXI(I)=-DELMXD/2.0+DELMXD*REAL(I-1)/REAL(NXI-1)
         ENDIF
       ENDDO
+      SXYZ(1)=DELMXD/REAL(NXI-1)
       IF(L2D) THEN
         IF(NYI.LE.1) CALL XABORT('VAL: UNABLE TO INTERPOLATE IN 2D.')
         DO I=1,NYI
@@ -432,12 +435,18 @@
             MYI(I)=-DELMYD/2.0+DELMYD*REAL(I-1)/REAL(NYI-1)
           ENDIF
         ENDDO
+        SXYZ(2)=DELMYD/REAL(NYI-1)
+      ELSE
+        SXYZ(2)=1.0
       ENDIF
       IF(L3D) THEN
         IF(NZI.LE.1) CALL XABORT('VAL: UNABLE TO INTERPOLATE IN 3D.')
         DO I=1,NZI
           MZI(I)=MZD(1)+(MZD(NZD+1)-MZD(1))*REAL(I-1)/REAL(NZI-1)
         ENDDO
+        SXYZ(3)=(MZD(NZD+1)-MZD(1))/REAL(NZI-1)
+      ELSE
+        SXYZ(3)=1.0
       ENDIF
       JPFLU=LCMGID(IPFLU,'FLUX')
 *     Get Data in L_FLUX
@@ -450,12 +459,11 @@
         NMIX=IMV(2)
         JPMAC=LCMGID(IPMAC,'GROUP')
       ENDIF
+      VNORM=1.0
       DO IG=1,NG
         CALL LCMGDL(JPFLU,IG,FLXD)
-*       PerDOm normalization
-        DO I=1,NUN
-          FLXD(I)=FLXD(I)*REAL(ZNORM)
-        ENDDO
+*       Perform normalization
+        FLXD(:NUN)=FLXD(:NUN)*REAL(ZNORM)
 *       Perform interpolation
         IF(L3D) THEN
           IF(ICHX.EQ.1) THEN
@@ -481,7 +489,8 @@
               LXH=NXD/(3*ISPLH**2)
               NBLOS=LXH*NZD*ISPLH**2
               CALL VALUE6(IELEM,NUN,LXH,NZD,NBLOS,ISPLH,MXI,MYI,MZI,
-     1        SIDE,MZD,FLXD,MAT,KFLX,NXI,NYI,NZI,MATXYZ,FXYZ(1,IG))
+     1        SIDE,MZD,FLXD,MAT,KFLX,NXI,NYI,NZI,SXYZ,VNORM,MATXYZ,
+     2        FXYZ(1,IG))
             ENDIF
           ELSE IF(ICHX.EQ.3) THEN
 *           Nodal collocation method (MCFD)
@@ -524,7 +533,7 @@
               LXH=NXD/(3*ISPLH**2)
               NBLOS=LXH*ISPLH**2
               CALL VALU6B(IELEM,NUN,LXH,NBLOS,ISPLH,MXI,MYI,SIDE,FLXD,
-     1        MAT,KFLX,NXI,NYI,MATXYZ,FXYZ(1,IG))
+     1        MAT,KFLX,NXI,NYI,SXYZ,VNORM,MATXYZ,FXYZ(1,IG))
             ENDIF
           ELSE IF(ICHX.EQ.3) THEN
 *           Nodal collocation method (MCFD)
@@ -563,11 +572,24 @@
         ENDIF
       ENDDO
 *----
+*  Normalize voxel sides in hexagonal cases
+*----
+      IF(ITYPE.GE.8) THEN
+        IF(IMPX.GT.0) WRITE(6,'(35H VAL: VOXEL SIDE NORMALIZATION FACT,
+     1  3HOR=,1P,E12.4)') VNORM
+        IF(L3D) THEN
+          SXYZ(:3)=SXYZ(:3)*VNORM
+        ELSE
+          SXYZ(:2)=SXYZ(:2)*VNORM
+        ENDIF
+      ENDIF
+*----
 *  Save results
 *----
       CALL LCMPUT(IPFVW,'MXI',NXI,2,MXI)
       IF(L2D) CALL LCMPUT(IPFVW,'MYI',NYI,2,MYI)
       IF(L3D) CALL LCMPUT(IPFVW,'MZI',NZI,2,MZI)
+      CALL LCMPUT(IPFVW,'SXYZ',3,2,SXYZ)
       IFV(:NSTATE)=0
       IFV(1)=NG
       IFV(2)=NXI
