@@ -41,13 +41,14 @@ myi=my_lcm['MYI']
 flux=my_lcm['FLUX'][1] # thermal flux
 
 xx,yy = np.meshgrid(mxi,myi)
-zz = flux.reshape(ny,nx,nz)[:,:,0]
+zz = flux.reshape(nz,ny,nx)[0,:,:]
 print("flux size=",zz.size)
 
 fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-ax.plot_surface(xx, yy, zz)
-plt.xlabel("x")
-plt.ylabel("y")
+ax.plot_wireframe(xx, yy, zz)
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('thermal flux')
 plt.savefig('VAL_hex_plot.eps', bbox_inches='tight', format='eps', dpi=300)
 #plt.show()
 EOF
