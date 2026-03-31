@@ -1,6 +1,6 @@
 *DECK OUTVOX
-      SUBROUTINE OUTVOX (IPGEOM,IPMAC1,IPVAL,IPMAC2,NBMIX,NL,NBFIS,NGRP,
-     1 NALBP,TITR)
+      SUBROUTINE OUTVOX (IPMAC1,IPVAL,IPMAC2,NBMIX,NL,NBFIS,NGRP,NALBP,
+     1 TITR)
 *
 *-----------------------------------------------------------------------
 *
@@ -18,7 +18,6 @@
 *Author(s): A Hebert
 *
 *Parameters: input
-* IPGEOM  L_GEOM pointer to the geometry.
 * IPMAC1  L_MACROLIB pointer to the nuclear properties.
 * IPVAL   L_FVIEW pointer to the interpflux data structure.
 * IPMAC2  L_MACROLIB pointer to the edition information.
@@ -35,18 +34,18 @@
 *----
 *  SUBROUTINE ARGUMENTS
 *----
-      TYPE(C_PTR) IPGEOM,IPMAC1,IPMAC2,IPVAL
+      TYPE(C_PTR) IPMAC1,IPMAC2,IPVAL
       CHARACTER TITR*72
-      INTEGER MAXNEL,NBMIX,NL,NBFIS,NGRP,NALBP
+      INTEGER NBMIX,NL,NBFIS,NGRP,NALBP
 *----
 *  LOCAL VARIABLES
 *----
       PARAMETER(NSTATE=20)
       INTEGER ISTATE(NSTATE)
       TYPE(C_PTR) JPMAC1,KPMAC1,JPVAL
-      CHARACTER TEXT4*4,HSMG*131
-      REAL NORM,CXYZ(3)
-      LOGICAL LDIAG,LVAL
+      CHARACTER TEXT4*4
+      REAL CXYZ(3)
+      LOGICAL LVAL
       DOUBLE PRECISION DFLOTT,ZNORM
 *----
 *  ALLOCATABLE ARRAYS
@@ -54,7 +53,7 @@
       INTEGER, DIMENSION(:), ALLOCATABLE :: IGCOND
       INTEGER, DIMENSION(:,:,:), ALLOCATABLE :: MATXYZ
       REAL, DIMENSION(:), ALLOCATABLE :: SGD
-      REAL, DIMENSION(:,:), ALLOCATABLE :: ZUFIS,ESTOPW
+      REAL, DIMENSION(:,:), ALLOCATABLE :: ZUFIS
       REAL, DIMENSION(:,:,:), ALLOCATABLE :: FLU
 *----
 *  SCRATCH STORAGE ALLOCATION
@@ -203,6 +202,7 @@
            ENDDO
          ENDDO ! IGR
          ZNORM=SNUMB/ZNORM
+         WRITE(6,305) ' DIRECT',ZNORM
          DEALLOCATE(SGD,MATXYZ)
       ELSE IF(TEXT4.EQ.'COND') THEN
          NGCOND=0
