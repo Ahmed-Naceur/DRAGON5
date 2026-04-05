@@ -22,7 +22,7 @@
 * IPLIB   pointer to the lattice microscopic cross section library
 *         (L_LIBRARY signature).
 * NAMFIL  name of the MATXS library file.
-* NGRO    number of energy groups.
+* NGRO    number of energy groups for the incident particle.
 * NBISO   number of isotopes present in the calculation domain.
 * NL      number of Legendre orders required in the calculation
 *         NL=1 or higher.
@@ -230,7 +230,7 @@
 *     ---------------------------------
       IF(LPART) THEN
 *        ENERGY BOUND IN EACH GROUP (IN EV):
-         DO 110 J=1,NGRO
+         DO 110 J=1,NG
          VECT(J)=LOG(XS(J)/XS(J+1))
   110    CONTINUE
          IF(I.EQ.1) THEN
@@ -238,8 +238,8 @@
             CALL LCMPUT(IPLIB,'DELTAU',NGRO,2,VECT)
             CALL LCMPTC(IPLIB,'PARTICLE',1,HNPART(1))
          ELSE
-            CALL LCMPUT(IPLIB,HNPART(I)//'ENERGY',NGRO+1,2,XS)
-            CALL LCMPUT(IPLIB,HNPART(I)//'DELTAU',NGRO,2,VECT)
+            CALL LCMPUT(IPLIB,HNPART(I)//'ENERGY',NG+1,2,XS)
+            CALL LCMPUT(IPLIB,HNPART(I)//'DELTAU',NG,2,VECT)
          ENDIF
       ENDIF
       DEALLOCATE(XS)
@@ -582,7 +582,6 @@
 *----
 *  RECOVER A NEW SCATTERING MATRIX SUB-BLOCK.
 *----
-      IF(NING.NE.NOUTG) CALL XABORT('LIBTR2: ONLY (N,N) ALLOWED.')
       DO 467 IL=1,NL
       DO 466 JJ=1,NOUTG
       DO 465 JJP=1,NING
