@@ -59,6 +59,7 @@ tests :
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q TEST_GEO_latt_tspc_S30.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q testDuo.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q testDuo_B1.x2m
+	./rdragon -c $(fcompilerSuite) -p $(nomp) -q uo2_evo_xsm.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q C2D20.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q CFC-CELL.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q ErmBeavrsPwrRefl.x2m
@@ -68,17 +69,17 @@ tests :
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q RegtestLZC_mccg.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q pincell_mco.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q pincell_sap.x2m
-ifeq ($(apolib),1)
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q tapollo1.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q tapollo2.x2m
-	./rdragon -c $(fcompilerSuite) -p $(nomp) -q uo2_evo_xsm.x2m
-	./rdragon -c $(fcompilerSuite) -p $(nomp) -q uo2_evo_hdf.x2m
-	./rdragon -c $(fcompilerSuite) -p $(nomp) -q ASSBLY_CASEA_1level_apex_boron.x2m
-	./rdragon -c $(fcompilerSuite) -p $(nomp) -q ASSBLY_CASEA_1level_mpo.x2m
-	./rdragon -c $(fcompilerSuite) -p $(nomp) -q ASSBLY_VVER_1level_mpo.x2m
+ifeq ($(salome),1)
+	./rdragon -c $(fcompilerSuite) -p $(nomp) -q glow_colorset.x2m
 endif
 ifeq ($(hdf5),1)
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q UOX_5x5_TG6_sym8_multiDom.x2m
+	./rdragon -c $(fcompilerSuite) -p $(nomp) -q uo2_evo_hdf.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q pincell_apx.x2m
 	./rdragon -c $(fcompilerSuite) -p $(nomp) -q pincell_mpo.x2m
+	./rdragon -c $(fcompilerSuite) -p $(nomp) -q ASSBLY_CASEA_1level_apex_boron.x2m
+	./rdragon -c $(fcompilerSuite) -p $(nomp) -q ASSBLY_CASEA_1level_mpo.x2m
+	./rdragon -c $(fcompilerSuite) -p $(nomp) -q ASSBLY_VVER_1level_mpo.x2m
 endif
